@@ -1,129 +1,87 @@
-SafeHire Ethiopia: Verified Talent for a Trusted Workforce
-Project Overview
-SafeHire Ethiopia is a transformative full-stack platform designed to address the pervasive issue of fake CVs and unreliable candidate information in the Ethiopian job market. By leveraging the National ID API, SafeHire aims to build a foundation of trust and authenticity in recruitment, connecting employers with verified talent and reducing hiring risks. This project creates a new standard in recruitment by ensuring that employers can access reliable work history and skills data.
+# Ethiopian Labor Platform
 
-Tagline
-"Verified Talent for a Trusted Workforce."
+This project is a comprehensive platform designed to connect employers with job seekers in Ethiopia, focusing on various labor sectors. It aims to streamline the hiring process, provide a centralized hub for job opportunities, and facilitate efficient communication between parties.
 
-Problem Statement
-Employers in Ethiopia frequently encounter challenges with:
+### Key Features:
+- **Fayda ID Integration**: Users will register with their Fayda ID, which will be verified against an external API to confirm their existence and authenticity.
+- **Job Information Verification**: The platform will verify the authenticity of users' work information. Companies will verify user details, and when employees scan, it will display their job stats and skills, preventing fake information.
+- **Academic Status Verification**: The platform will register graduates and automatically verify their graduation status. Students will also be registered, and their academic data, including school and country-specific details, will be refined and verified to prevent fraudulent claims.
+- **Health Status Registration**: Users' health status will be registered, allowing emergency services to access their information by scanning their Fayda card.
+- **Property Registration and Verification**: Users' assets, such as cars and houses, will be registered on the platform. This information will be analyzed to prevent fraudulent claims or attempts to seize property.
 
-Fake CVs and Credentials: Many job applications include fabricated qualifications or work histories, making it difficult to assess true candidate capabilities.
+## Features
 
-Unreliable Candidate Information: The lack of a centralized, verifiable system for professional backgrounds leads to uncertainty and increased hiring risks for businesses.
+- **User Authentication:** Secure login and registration for both employers and workers.
+- **Admin Dashboard:** Management tools for administrators to oversee users, job postings, and platform activity.
+- **Employer Dashboard:** Employers can post job listings, manage applications, and view worker profiles.
+- **Worker Dashboard:** Job seekers can create profiles, search for jobs, apply to positions, and track their application status.
+- **Firebase Integration:** Utilizes Firebase for real-time database (Firestore), authentication, and analytics.
+- **Next.js Framework:** Built with Next.js for a fast, scalable, and SEO-friendly web application.
+- **Responsive UI:** A modern and responsive user interface built with Shadcn UI components.
+- **Local Caching:** Implements persistent local caching for Firestore data to enhance offline capabilities and performance.
 
-Lack of Trust in Recruitment: The prevalence of fraudulent information erodes trust between employers and job seekers, hindering efficient talent acquisition.
+## Project Structure
 
-Solution
-SafeHire Ethiopia offers a robust solution by providing a hiring platform where job seekers create profiles verified directly through their National ID. This ensures that all registered profiles are legitimate and linked to a real individual. Employers can then search and view these verified profiles, gaining access to reliable work history and skill sets, significantly reducing the risks associated with hiring. The Node.js backend handles secure API interactions and business logic, while the React TSX frontend provides a dynamic and responsive user experience.
+- `/app`: Contains the main Next.js application pages and global styles.
+- `/components`: Reusable UI components, including authentication, admin, employer, and worker specific components.
+- `/lib`: Utility functions and Firebase initialization logic.
+- `/public`: Static assets like images.
+- `/services`: Firebase service interactions.
+- `/styles`: Global CSS styles.
 
-Key Features
-National ID-Verified Profiles: All job seeker profiles are authenticated and verified using the National ID API, ensuring the legitimacy of the user. This verification process will likely be orchestrated by the Node.js backend.
+## Getting Started
 
-Work History and Skills Database: A comprehensive database (powered by Firebase Firestore) where job seekers can list their employment history, skills, and educational background.
+To run this project locally, follow these steps:
 
-Employer Dashboard: A dedicated portal for employers to efficiently search, filter, and contact verified talent based on their specific hiring needs.
+### Prerequisites
 
-Fraud Reduction: By linking profiles to National IDs and processing data securely through the backend, the platform inherently minimizes the submission of fake documentation.
+- Node.js (v18 or higher)
+- pnpm (or npm/yarn)
+- Firebase Project: You need to set up a Firebase project and configure `firebaseConfig` in `lib/firebase.ts` with your project details.
 
-Why SafeHire Ethiopia is Unique
-While many platforms focus on basic job listings, SafeHire Ethiopia stands out by directly addressing the critical issue of trust in employment. It tackles the problem of fake documentation head-on, creating a new and higher standard for recruitment processes in the country. Its integration with the National ID provides a meaningful and impactful solution beyond mere authentication, with the Node.js backend providing the necessary power and security for complex operations.
+### Installation
 
-Build Feasibility (MVP Focus)
-The Minimum Viable Product (MVP) for SafeHire Ethiopia is highly feasible for rapid development:
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd ethiopian-labor-platform
+   ```
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
 
-Core Functionality (1 month): National ID verification (via backend), profile creation, and the basic search functionality for employers can be developed within approximately one month.
+### Running the Application
 
-Expandability: The platform is designed for future expansion, allowing for features like ratings, references, and endorsements to be added incrementally.
+To start the development server:
 
-Technology Stack
-Frontend: React.js (TSX), Bootstrap
+```bash
+pnpm dev
+```
 
-Backend: Node.js (Express.js recommended for API handling)
+The application will be accessible at `http://localhost:3000`.
 
-Database: Google Firebase (Firestore for primary data storage)
+## Firebase Configuration
 
-Authentication: Google Firebase Authentication (managed by Node.js backend and client-side)
+The project uses Firebase Firestore for its database. The configuration is handled in `lib/firebase.ts`. Key aspects include:
 
-Storage: Google Firebase Cloud Storage (for CVs, documents)
+- **`initializeFirestore`**: Used for advanced Firestore configuration.
+- **`persistentLocalCache`**: Enables local data caching for improved performance and offline support.
+- **`persistentMultipleTabManager`**: Manages cache synchronization across multiple browser tabs.
+- **`experimentalForceLongPolling: false`**: Prioritizes WebSocket connections for real-time updates, falling back to long-polling if WebSockets fail.
 
-API Integration: Ethiopian National ID API (orchestrated by Node.js backend)
+**Important:** For local development and testing, you might need to temporarily adjust your Firebase Firestore security rules to allow read/write access. Remember to secure them properly before deploying to production.
 
-Getting Started (for Developers)
-To set up this project locally, you'll typically have two main directories: one for your React TSX frontend and one for your Node.js backend.
+## Troubleshooting
 
-1. Backend Setup (Node.js)
-Navigate to Backend Directory:
+- **`net::ERR_ABORTED` for Firestore Listen/channel endpoint:** This error indicates an issue with the Firestore connection. Ensure your Firebase configuration is correct and consider temporarily setting `experimentalForceLongPolling: true` in `lib/firebase.ts` for local development if WebSockets are consistently failing.
+- **`ReferenceError: localStorage is not defined`:** This error typically occurs when `localStorage` is accessed on the server-side during server-side rendering (SSR). The `auth-context.tsx` file has been updated to use `useEffect` to ensure `localStorage` access only happens in the client-side environment.
 
-Bash
+## Rules and Guidelines
 
-cd safehire-ethiopia/backend # (Assuming a 'backend' folder)
-Install Dependencies:
-
-Bash
-
-npm install
-Firebase Project Setup:
-
-Create a new project in the Firebase Console.
-
-Enable Firebase Authentication, Firestore Database, and Cloud Storage.
-
-Generate a Firebase Admin SDK private key (JSON file) for your Node.js backend.
-
-Configure Environment Variables:
-
-Create a .env file in your backend directory.
-
-Add your Firebase Admin SDK credentials and any other sensitive API keys (e.g., National ID API key) here:
-
-FIREBASE_PRIVATE_KEY_ID=your_private_key_id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n" # Ensure newlines are preserved
-FIREBASE_CLIENT_EMAIL=your_client_email
-FIREBASE_PROJECT_ID=your_project_id
-# Add National ID API key here
-NATIONAL_ID_API_KEY=your_national_id_api_key
-Run the Backend Server:
-
-Bash
-
-npm start # Or `node server.js` depending on your setup
-This will typically start your API server (e.g., on http://localhost:5000).
-
-2. Frontend Setup (React TSX)
-Navigate to Frontend Directory:
-
-Bash
-
-cd safehire-ethiopia/frontend # (Assuming a 'frontend' folder)
-Install Dependencies:
-
-Bash
-
-npm install
-Configure Environment Variables:
-
-Create a .env file in your frontend directory.
-
-Add your client-side Firebase configuration details (these are safe to expose in the client-side code, unlike the Admin SDK keys):
-
-REACT_APP_FIREBASE_API_KEY=your_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
-REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-REACT_APP_FIREBASE_APP_ID=your_app_id
-REACT_APP_FIREBASE_MEASUREMENT_ID=your_measurement_id
-REACT_APP_BACKEND_URL=http://localhost:5000 # Or your deployed backend URL
-Run the Development Server:
-
-Bash
-
-npm start
-This will typically open the application in your browser at http://localhost:3000.
-
-Contributing
-We welcome contributions! Please see our CONTRIBUTING.md (to be created) for details on how to get involved.
-
-License
-[Choose and specify your license, e.g., MIT License]
+- **Code Style:** Adhere to the existing code style and ESLint rules.
+- **Commit Messages:** Use clear and concise commit messages.
+- **Branching Strategy:** Follow a feature-branch workflow (e.g., Git Flow or GitHub Flow).
+- **Testing:** Write unit and integration tests for new features and bug fixes.
+- **Security:** Always prioritize security best practices, especially when dealing with user data and Firebase rules.
+- **Contribution:** Contributions are welcome. Please open an issue or submit a pull request.
