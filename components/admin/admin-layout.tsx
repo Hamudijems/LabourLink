@@ -3,6 +3,8 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useAuth } from "@/components/auth/auth-context"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -40,15 +42,14 @@ import {
 
 interface AdminLayoutProps {
   children: React.ReactNode
-  currentPage: string
-  onPageChange: (page: string) => void
-  onLogout: () => void
-  adminEmail: string
 }
 
-export default function AdminLayout({ children, currentPage, onPageChange, onLogout, adminEmail }: AdminLayoutProps) {
+export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const { adminEmail, logout } = useAuth()
+  const pathname = usePathname()
+  const router = useRouter()
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode)
@@ -56,50 +57,56 @@ export default function AdminLayout({ children, currentPage, onPageChange, onLog
   }
 
   const handleSignOut = () => {
-    onLogout()
+    logout()
   }
 
   const menuItems = [
     {
-      id: "admin-dashboard",
+      id: "dashboard",
       label: "Dashboard",
       icon: BarChart3,
       description: "System overview and analytics",
+      href: "/dashboard",
     },
     {
       id: "user-management",
       label: "User Management",
       icon: Users,
       description: "Manage workers and employers",
+      href: "/user-management",
     },
     {
       id: "worker-dashboard",
       label: "Worker View",
       icon: Users,
       description: "Preview worker dashboard",
+      href: "/worker-dashboard",
     },
     {
       id: "employer-dashboard",
       label: "Employer View",
       icon: Briefcase,
       description: "Preview employer dashboard",
+      href: "/employer-dashboard",
     },
     {
       id: "worker-registration",
       label: "Worker Registration",
       icon: UserPlus,
       description: "Worker signup process",
+      href: "/worker-registration",
     },
     {
       id: "contract",
       label: "Digital Contracts",
       icon: FileText,
       description: "Contract management system",
+      href: "/contract",
     },
   ]
 
-  const handleMenuClick = (pageId: string) => {
-    onPageChange(pageId)
+  const handleMenuClick = (href: string) => {
+    router.push(href)
     setIsSidebarOpen(false)
   }
 
@@ -205,31 +212,33 @@ export default function AdminLayout({ children, currentPage, onPageChange, onLog
                   <p className="text-sm text-gray-600 dark:text-gray-300">Manage your labor platform</p>
                 </div>
 
-                {menuItems.map((item) => {
-                  const Icon = item.icon
-                  const isActive = currentPage === item.id
+                <nav className="space-y-2">
+                  {menuItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.href
 
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleMenuClick(item.id)}
-                      className={`
-                        w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors
-                        ${
-                          isActive
-                            ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        }
-                      `}
-                    >
-                      <Icon className={`h-5 w-5 mr-3 ${isActive ? "text-green-600" : "text-gray-500"}`} />
-                      <div>
-                        <div className="font-medium">{item.label}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{item.description}</div>
-                      </div>
-                    </button>
-                  )
-                })}
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleMenuClick(item.href)}
+                        className={`
+                          w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors
+                          ${
+                            isActive
+                              ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700"
+                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }
+                        `}
+                      >
+                        <Icon className={`h-5 w-5 mr-3 ${isActive ? "text-green-600" : "text-gray-500"}`} />
+                        <div>
+                          <div className="font-medium">{item.label}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{item.description}</div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </nav>
               </div>
 
               <div className="p-4 border-t border-gray-200 dark:border-gray-700">
