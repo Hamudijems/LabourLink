@@ -20,20 +20,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const auth = getAuth()
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
+    const initializeAuth = async () => {
+      const { auth } = await getFirebaseServices()
+      if (auth) {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          setUser(user)
+          setLoading(false)
+        })
+        return () => unsubscribe()
+      }
+    }
+    initializeAuth()
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const auth = getAuth()
-      await signInWithEmailAndPassword(auth, email, password)
-      return true
+      const { auth } = await getFirebaseServices()
+      if (auth) {
+        await signInWithEmailAndPassword(auth, email, password)
+        return true
+      }
+      return false
     } catch (error) {
       console.error("Failed to log in", error)
       return false
@@ -41,8 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    const auth = getAuth()
-    await signOut(auth)
+    const { auth } = await getFirebaseServices()
+    if (auth) {
+      await signOut(auth)
+    }
   }
 
   const isAuthenticated = !!user
