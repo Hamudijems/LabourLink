@@ -13,10 +13,14 @@ const firebaseConfig = {
   measurementId: "G-8482ZXH3GC",
 }
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
+let app: FirebaseApp
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig)
+} else {
+  app = getApp()
+}
+
 const db = initializeFirestore(app, {})
 const auth = getAuth(app)
 
-export const getFirebaseServices = async () => {
-  return { app, db, auth, ready: true, error: null }
-}
+export { app, db, auth }
