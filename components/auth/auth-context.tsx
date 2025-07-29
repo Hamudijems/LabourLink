@@ -1,57 +1,58 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, type User } from "firebase/auth"
+import { getFirebaseServices } from "@/lib/firebase"
 
 interface AuthContextType {
   isAuthenticated: boolean
   adminEmail: string | null
-  login: (email: string, password: string) => boolean
+  user: User | null
+  login: (email: string, password: string) => Promise<boolean>
   logout: () => void
+  loading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [adminEmail, setAdminEmail] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const login = (email: string, password: string): boolean => {
-    // Check credentials
-    if (email === "hamudijems4@gmail.com" && password === "ahmed123") {
-      setIsAuthenticated(true)
-      setAdminEmail(email)
-      // Store in localStorage for persistence
-      localStorage.setItem("adminAuth", JSON.stringify({ email, authenticated: true }))
-      return true
-    }
-    return false
-  }
-
-  const logout = () => {
-    setIsAuthenticated(false)
-    setAdminEmail(null)
-    localStorage.removeItem("adminAuth")
-  }
-
-  // Check for existing auth on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem("adminAuth")
-      if (stored) {
-        try {
-          const { email, authenticated } = JSON.parse(stored)
-          if (authenticated) {
-            setIsAuthenticated(true)
-            setAdminEmail(email)
-          }
-        } catch (error) {
-          localStorage.removeItem("adminAuth")
-        }
-      }
-    }
+    const auth = getAuth()
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
   }, [])
 
-  return <AuthContext.Provider value={{ isAuthenticated, adminEmail, login, logout }}>{children}</AuthContext.Provider>
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const auth = getAuth()
+      await signInWithEmailAndPassword(auth, email, password)
+      return true
+    } catch (error) {
+      console.error("Failed to log in", error)
+      return false
+    }
+  }
+
+  const logout = async () => {
+    const auth = getAuth()
+    await signOut(auth)
+  }
+
+  const isAuthenticated = !!user
+  const adminEmail = user ? user.email : null
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, adminEmail, user, login, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

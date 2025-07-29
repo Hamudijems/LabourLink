@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useAuth } from "./auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,11 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Shield, Eye, EyeOff, AlertCircle } from "lucide-react"
 
-interface AdminLoginProps {
-  onLogin: (email: string, password: string) => boolean
-}
-
-export default function AdminLogin({ onLogin }: AdminLoginProps) {
+export default function AdminLogin() {
+  const { login } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -26,10 +24,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
     setError("")
     setIsLoading(true)
 
-    // Simulate loading delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const success = onLogin(email, password)
+    const success = await login(email, password)
 
     if (!success) {
       setError("Invalid email or password. Please try again.")
@@ -71,6 +66,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   className="mt-2 text-lg py-6"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -87,6 +83,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     className="text-lg py-6 pr-12"
                     required
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
@@ -104,15 +101,6 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
             <Button type="submit" disabled={!email || !password || isLoading} className="w-full text-lg py-6" size="lg">
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
-
-            <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-300">Demo Credentials:</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Email: hamudijems4@gmail.com
-                <br />
-                Password: ahmed123
-              </p>
-            </div>
           </form>
         </CardContent>
       </Card>
