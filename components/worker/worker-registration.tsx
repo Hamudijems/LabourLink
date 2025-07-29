@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { useUsers } from "../context/user-context"
+import { db } from "@/lib/firebase"
+import { collection, addDoc } from "firebase/firestore"
 import { AlertCircle, CheckCircle2, Loader2, User, MapPin, Briefcase, Users, Phone } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
@@ -52,7 +53,6 @@ interface WorkerRegistrationProps {
 }
 
 export default function WorkerRegistration({ onComplete }: WorkerRegistrationProps) {
-  const { addUser } = useUsers()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -187,9 +187,11 @@ export default function WorkerRegistration({ onComplete }: WorkerRegistrationPro
     setError("")
 
     try {
-      await addUser({
+      await addDoc(collection(db, "users"), {
         ...formData,
         userType: "worker",
+        status: "pending",
+        registrationDate: new Date().toISOString(),
       })
       setSuccess(true)
       if (onComplete) {

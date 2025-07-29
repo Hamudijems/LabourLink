@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getFirebaseServices } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { setDoc, doc } from "firebase/firestore"
 
@@ -7,11 +7,6 @@ export async function POST(request: Request) {
   const { email, password, faydaId, skills } = await request.json()
 
   try {
-    const { auth, db } = await getFirebaseServices()
-
-    if (!auth || !db) {
-      return NextResponse.json({ success: false, error: "Firebase services not available" }, { status: 500 })
-    }
 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     const user = userCredential.user

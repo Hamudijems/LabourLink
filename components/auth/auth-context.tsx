@@ -1,8 +1,8 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, type User } from "firebase/auth"
-import { getFirebaseServices } from "@/lib/firebase"
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut, type User } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -20,27 +20,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const { auth } = await getFirebaseServices()
-      if (auth) {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-          setUser(user)
-          setLoading(false)
-        })
-        return () => unsubscribe()
-      }
-    }
-    initializeAuth()
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { auth } = await getFirebaseServices()
-      if (auth) {
-        await signInWithEmailAndPassword(auth, email, password)
-        return true
-      }
-      return false
+      await signInWithEmailAndPassword(auth, email, password)
+      return true
     } catch (error) {
       console.error("Failed to log in", error)
       return false
@@ -48,10 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    const { auth } = await getFirebaseServices()
-    if (auth) {
-      await signOut(auth)
-    }
+    await signOut(auth)
   }
 
   const isAuthenticated = !!user

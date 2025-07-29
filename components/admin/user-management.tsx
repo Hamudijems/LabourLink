@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useUsers } from "../context/user-context"
+import { db } from "@/lib/firebase"
 import {
   Search,
   MoreHorizontal,
@@ -35,13 +35,31 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default function UserManagement() {
-  const { users, pendingUsers, loading, error, updateUser, deleteUser, refreshUsers } = useUsers()
-
+  const [users, setUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const usersCollection = collection(db, "users")
+        const userSnapshot = await getDocs(usersCollection)
+        const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        setUsers(userList)
+      } catch (err) {
+        setError("Failed to fetch users.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -60,10 +78,15 @@ export default function UserManagement() {
     setActionLoading(`${userId}-${action}`)
     try {
       if (action === "delete") {
-        await deleteUser(userId)
+        await deleteDoc(doc(db, "users", userId))
       } else if (newStatus) {
-        await updateUser(userId, { status: newStatus as any })
+        await updateDoc(doc(db, "users", userId), { status: newStatus })
       }
+      // Refresh users
+      const usersCollection = collection(db, "users")
+      const userSnapshot = await getDocs(usersCollection)
+      const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      setUsers(userList)
     } catch (err) {
       console.error(`Error performing ${action}:`, err)
     } finally {
