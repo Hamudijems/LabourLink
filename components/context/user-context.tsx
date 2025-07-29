@@ -13,42 +13,15 @@ import {
 
 export interface User {
   id?: string
-  fydaId: string
-  firstName: string
-  lastName: string
+  faydaId: string
+  name: string
   phone: string
   email: string
-  region: string
-  city: string
-  subcity?: string
-  woreda?: string
-  kebele?: string
-  userType: "worker" | "employer"
   status: "pending" | "verified" | "suspended" | "rejected"
   registrationDate: string
   lastActive: string
-  profilePhoto?: string
   skills?: string[]
-  experience?: string
-  jobsCompleted?: number
-  jobsPosted?: number
-  rating?: number
-  totalEarnings?: string
-  emergencyContact?: {
-    name: string
-    phone: string
-    relation: string
-  }
-  dateOfBirth?: string
-  gender?: string
-  languages?: string[]
-  availability?: string
-  preferredJobTypes?: string[]
-  expectedWage?: string
-  workRadius?: string
-  education?: string
-  companyName?: string
-  businessType?: string
+  isFaydaVerified?: boolean
 }
 
 interface UserContextType {
@@ -60,7 +33,6 @@ interface UserContextType {
   updateUser: (id: string, updates: Partial<User>) => Promise<void>
   deleteUser: (id: string) => Promise<void>
   getUserById: (id: string) => User | undefined
-  getUsersByType: (type: "worker" | "employer") => User[]
   refreshUsers: () => void
   clearError: () => void
 }
@@ -69,7 +41,12 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 
 const convertFirebaseUserToUser = (firebaseUser: FirebaseUser): User => {
   return {
-    ...firebaseUser,
+    id: firebaseUser.id,
+    faydaId: firebaseUser.faydaId,
+    name: firebaseUser.name,
+    phone: firebaseUser.phone,
+    email: firebaseUser.email,
+    status: firebaseUser.status,
     registrationDate:
       firebaseUser.registrationDate instanceof Timestamp
         ? firebaseUser.registrationDate.toDate().toISOString().split("T")[0]
@@ -78,6 +55,8 @@ const convertFirebaseUserToUser = (firebaseUser: FirebaseUser): User => {
       firebaseUser.lastActive instanceof Timestamp
         ? firebaseUser.lastActive.toDate().toISOString().split("T")[0]
         : firebaseUser.lastActive,
+    skills: firebaseUser.skills,
+    isFaydaVerified: firebaseUser.isFaydaVerified,
   }
 }
 
@@ -157,10 +136,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return users.find((user) => user.id === id)
   }
 
-  const getUsersByType = (type: "worker" | "employer"): User[] => {
-    return users.filter((user) => user.userType === type)
-  }
-
   const refreshUsers = () => {
     // Real-time listeners automatically refresh data
     setError(null)
@@ -181,7 +156,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateUser,
         deleteUser,
         getUserById,
-        getUsersByType,
         refreshUsers,
         clearError,
       }}

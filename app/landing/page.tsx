@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export default function LandingPage() {
@@ -11,17 +12,11 @@ export default function LandingPage() {
           <span className="sr-only">SafeHire Ethiopia</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
-          <Link href="#" className="text-sm font-medium hover:underline underline-offset-4" prefetch={false}>
-            Features
-          </Link>
-          <Link href="#" className="text-sm font-medium hover:underline underline-offset-4" prefetch={false}>
-            Pricing
-          </Link>
-          <Link href="#" className="text-sm font-medium hover:underline underline-offset-4" prefetch={false}>
-            About
-          </Link>
           <Link href="/login" className="text-sm font-medium hover:underline underline-offset-4" prefetch={false}>
             Admin Login
+          </Link>
+          <Link href="/signup" className="text-sm font-medium hover:underline underline-offset-4" prefetch={false}>
+            Register
           </Link>
         </nav>
       </header>
@@ -32,27 +27,26 @@ export default function LandingPage() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    The Future of Trusted Hiring in Ethiopia
+                    Find Your Next Opportunity with SafeHire Ethiopia
                   </h1>
-                  <p className="max-w-[600px] text-gray-500 md:text-xl dark:text-gray-400">
-                    SafeHire Ethiopia is a revolutionary platform that connects employers with a verified and trusted
-                    workforce, powered by the National ID (Fayda ID).
+                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                    The trusted platform for connecting verified talent with top employers in Ethiopia.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Link
                     href="/signup"
-                    className="inline-flex h-10 items-center justify-center rounded-md bg-gray-900 px-8 text-sm font-medium text-gray-50 shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
+                    className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                     prefetch={false}
                   >
                     Get Started
                   </Link>
                   <Link
                     href="#"
-                    className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-8 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus-visible:ring-gray-300"
+                    className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                     prefetch={false}
                   >
-                    Contact Sales
+                    Learn More
                   </Link>
                 </div>
               </div>
@@ -67,6 +61,17 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
+      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
+        <p className="text-xs text-muted-foreground">&copy; 2024 SafeHire Ethiopia. All rights reserved.</p>
+        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
+          <Link href="#" className="text-xs hover:underline underline-offset-4" prefetch={false}>
+            Terms of Service
+          </Link>
+          <Link href="#" className="text-xs hover:underline underline-offset-4" prefetch={false}>
+            Privacy
+          </Link>
+        </nav>
+      </footer>
     </div>
   )
 }

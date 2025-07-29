@@ -45,9 +45,8 @@ export default function UserManagement() {
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fydaId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.faydaId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone.includes(searchTerm)
 
@@ -217,6 +216,7 @@ export default function UserManagement() {
                   <TableHead>FYDA ID</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Fayda Verified</TableHead>
                   <TableHead>Registration Date</TableHead>
                   <TableHead>Last Active</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -225,7 +225,7 @@ export default function UserManagement() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       <div className="flex items-center justify-center space-x-2">
                         <RefreshCw className="h-4 w-4 animate-spin" />
                         <span>Loading users from Firebase...</span>
@@ -234,7 +234,7 @@ export default function UserManagement() {
                   </TableRow>
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                       {searchTerm || statusFilter !== "all" || typeFilter !== "all"
                         ? "No users match your filters"
                         : "No users found"}
@@ -245,20 +245,26 @@ export default function UserManagement() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">
-                            {user.firstName} {user.lastName}
-                          </p>
+                          <p className="font-medium">{user.name}</p>
                           <p className="text-sm text-gray-500">{user.email}</p>
                           <p className="text-sm text-gray-500">{user.phone}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">{user.fydaId}</code>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user.userType}</Badge>
+                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">{user.faydaId}</code>
                       </TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
+                      <TableCell>
+                        {user.isFaydaVerified ? (
+                          <Badge variant="default" className="bg-green-100 text-green-800">
+                            Verified
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                            Pending
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{user.registrationDate}</TableCell>
                       <TableCell>{user.lastActive}</TableCell>
                       <TableCell className="text-right">
