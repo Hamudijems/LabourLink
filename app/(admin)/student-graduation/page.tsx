@@ -152,13 +152,31 @@ export default function StudentGraduation() {
     setError(null)
 
     try {
+      // Check if student exists in registered students
+      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
+      const existingStudent = registeredStudents.find((student: any) => 
+        student.fin === formData.fin && student.fan === formData.fan
+      )
+
+      if (!existingStudent) {
+        setError("Student not found in registration system. Please register the student first before graduation.")
+        setLoading(false)
+        return
+      }
+
+      if (existingStudent.status === "graduated") {
+        setError("This student has already graduated.")
+        setLoading(false)
+        return
+      }
+
       const graduateData = {
         ...formData,
         faydaVerified: true,
         registrationDate: new Date().toISOString().split('T')[0]
       }
 
-      // Store in localStorage
+      // Store in graduates localStorage
       const existingGraduates = JSON.parse(localStorage.getItem('registeredGraduates') || '[]')
       const newGraduate = {
         ...graduateData,
@@ -167,7 +185,13 @@ export default function StudentGraduation() {
       existingGraduates.push(newGraduate)
       localStorage.setItem('registeredGraduates', JSON.stringify(existingGraduates))
       
-      setSuccess("Graduate registered successfully")
+      // Update student status to graduated
+      const updatedStudents = registeredStudents.map((student: any) => 
+        student.id === existingStudent.id ? { ...student, status: "graduated" } : student
+      )
+      localStorage.setItem('registeredStudents', JSON.stringify(updatedStudents))
+      
+      setSuccess(`Graduate registered successfully! Student ${existingStudent.firstName} ${existingStudent.lastName} has been marked as graduated.`)
       setFormData({
         fin: "",
         fan: "",
