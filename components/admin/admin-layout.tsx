@@ -47,7 +47,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
-  const { logout, adminEmail, isAuthenticated, loading } = useAuth()
+  const { logout, adminEmail, isAuthenticated, loading, hasPageAccess } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -78,7 +78,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     logout()
   }
 
-  const menuItems = [
+  const allMenuItems = [
     {
       id: "dashboard",
       label: "Dashboard",
@@ -107,7 +107,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       description: "Manage registered employers",
       href: "/employers",
     },
-
     {
       id: "student-registration",
       label: "Student Registration",
@@ -130,34 +129,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: "/student-graduation",
     },
     {
+      id: "admin-management",
+      label: "Admin Management",
+      icon: Shield,
+      description: "Create and manage admin users",
+      href: "/admin-management",
+    },
+    {
       id: "property-management",
       label: "Property Management",
       icon: Shield,
       description: "View registered properties",
       href: "/property-management",
     },
-    {
-      id: "worker-dashboard",
-      label: "Worker View",
-      icon: Users,
-      description: "Preview worker dashboard",
-      href: "/worker-dashboard",
-    },
-    {
-      id: "employer-dashboard",
-      label: "Employer View",
-      icon: Briefcase,
-      description: "Preview employer dashboard",
-      href: "/employer-dashboard",
-    },
-    {
-      id: "contract",
-      label: "Digital Contracts",
-      icon: FileText,
-      description: "Contract management system",
-      href: "/contract",
-    },
   ]
+
+  // Filter menu items based on user's allowed pages
+  const menuItems = allMenuItems.filter(item => hasPageAccess(item.id))
 
   const handleMenuClick = (href: string) => {
     router.push(href)
