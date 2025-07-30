@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -61,7 +61,8 @@ export default function WorkerRegistration({ onComplete }: WorkerRegistrationPro
   const [verifyingFyda, setVerifyingFyda] = useState(false)
 
   const [formData, setFormData] = useState({
-    fydaId: "",
+    fin: "",
+    fan: "",
     firstName: "",
     lastName: "",
     phone: "",
@@ -113,25 +114,46 @@ export default function WorkerRegistration({ onComplete }: WorkerRegistrationPro
   }
 
   const verifyFydaId = async () => {
-    if (!formData.fydaId) {
-      setError("Please enter FYDA ID")
+    if (!formData.fin || !formData.fan) {
+      setError("Please enter both FIN and FAN")
       return
     }
 
     setVerifyingFyda(true)
     setError("")
 
-    // Simulate FYDA ID verification
-    setTimeout(() => {
-      if (formData.fydaId.match(/^ET-[A-Z]{2}-\d{7}$/)) {
+    try {
+      const response = await fetch("/api/verify-fayda", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fin: formData.fin, fan: formData.fan }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
         setFydaVerified(true)
         setError("")
+        // Auto-fill name if available
+        if (data.user?.name) {
+          setFormData(prev => ({
+            ...prev,
+            firstName: data.user.name.split(' ')[0] || '',
+            lastName: data.user.name.split(' ').slice(1).join(' ') || ''
+          }))
+        }
       } else {
-        setError("Invalid FYDA ID format. Please use format: ET-AA-1234567")
+        setError(data.error || "Invalid FIN/FAN combination")
         setFydaVerified(false)
       }
-      setVerifyingFyda(false)
-    }, 2000)
+    } catch (error) {
+      setError("Verification service error. Please try again.")
+      setFydaVerified(false)
+    }
+
+    setVerifyingFyda(false)
   }
 
   const validateStep = (step: number): boolean => {
@@ -217,7 +239,10 @@ export default function WorkerRegistration({ onComplete }: WorkerRegistrationPro
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>FYDA ID:</strong> {formData.fydaId}
+                <strong>FIN:</strong> {formData.fin}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>FAN:</strong> {formData.fan}
               </p>
               <p className="text-sm text-gray-600">
                 <strong>Skills:</strong> {formData.skills.join(", ")}
@@ -302,22 +327,34 @@ export default function WorkerRegistration({ onComplete }: WorkerRegistrationPro
         {currentStep === 1 && (
           <div className="space-y-6">
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="fydaId">FYDA ID *</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="fin">FIN (Fayda Identification Number) *</Label>
                   <Input
-                    id="fydaId"
-                    value={formData.fydaId}
-                    onChange={(e) => handleInputChange("fydaId", e.target.value)}
-                    placeholder="ET-AA-1234567"
+                    id="fin"
+                    value={formData.fin}
+                    onChange={(e) => handleInputChange("fin", e.target.value)}
+                    placeholder="Enter your FIN"
                     disabled={fydaVerified}
                   />
                 </div>
+                <div>
+                  <Label htmlFor="fan">FAN (Fayda Account Number) *</Label>
+                  <Input
+                    id="fan"
+                    value={formData.fan}
+                    onChange={(e) => handleInputChange("fan", e.target.value)}
+                    placeholder="Enter your FAN"
+                    disabled={fydaVerified}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-center">
                 <Button
                   onClick={verifyFydaId}
-                  disabled={verifyingFyda || fydaVerified || !formData.fydaId}
+                  disabled={verifyingFyda || fydaVerified || !formData.fin || !formData.fan}
                   variant={fydaVerified ? "default" : "outline"}
-                  className="mt-6"
+                  className="w-full"
                 >
                   {verifyingFyda ? (
                     <>
@@ -330,7 +367,7 @@ export default function WorkerRegistration({ onComplete }: WorkerRegistrationPro
                       Verified
                     </>
                   ) : (
-                    "Verify FYDA ID"
+                    "Verify Fayda ID"
                   )}
                 </Button>
               </div>
@@ -338,7 +375,7 @@ export default function WorkerRegistration({ onComplete }: WorkerRegistrationPro
               {fydaVerified && (
                 <Alert>
                   <CheckCircle2 className="h-4 w-4" />
-                  <AlertDescription>FYDA ID verified successfully!</AlertDescription>
+                  <AlertDescription>Fayda ID verified successfully!</AlertDescription>
                 </Alert>
               )}
 
@@ -689,7 +726,10 @@ export default function WorkerRegistration({ onComplete }: WorkerRegistrationPro
                     <strong>Name:</strong> {formData.firstName} {formData.lastName}
                   </p>
                   <p>
-                    <strong>FYDA ID:</strong> {formData.fydaId}
+                    <strong>FIN:</strong> {formData.fin}
+                  </p>
+                  <p>
+                    <strong>FAN:</strong> {formData.fan}
                   </p>
                   <p>
                     <strong>Phone:</strong> {formData.phone}

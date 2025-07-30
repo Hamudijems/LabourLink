@@ -76,6 +76,41 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: "/user-management",
     },
     {
+      id: "workers",
+      label: "Workers",
+      icon: Users,
+      description: "Manage registered workers",
+      href: "/workers",
+    },
+    {
+      id: "employers",
+      label: "Employers",
+      icon: Briefcase,
+      description: "Manage registered employers",
+      href: "/employers",
+    },
+    {
+      id: "student-registration",
+      label: "Student Registration",
+      icon: Users,
+      description: "Register new students",
+      href: "/student-registration",
+    },
+    {
+      id: "student-graduation",
+      label: "Student Graduation",
+      icon: Users,
+      description: "Register graduates",
+      href: "/student-graduation",
+    },
+    {
+      id: "property-management",
+      label: "Property Management",
+      icon: Shield,
+      description: "View registered properties",
+      href: "/property-management",
+    },
+    {
       id: "worker-dashboard",
       label: "Worker View",
       icon: Users,
@@ -88,13 +123,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: Briefcase,
       description: "Preview employer dashboard",
       href: "/employer-dashboard",
-    },
-    {
-      id: "worker-registration",
-      label: "Worker Registration",
-      icon: UserPlus,
-      description: "Worker signup process",
-      href: "/worker-registration",
     },
     {
       id: "contract",
@@ -130,7 +158,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <div className="flex items-center space-x-2">
                   <Shield className="h-8 w-8" />
                   <div>
-                    <h1 className="text-xl font-bold">EthioWork Admin</h1>
+                    <h1 className="text-xl font-bold">SafeHire Ethiopia Admin</h1>
                     <p className="text-xs text-green-200">Management Dashboard</p>
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +24,7 @@ import { db } from "@/lib/firebase"
 import { collection, getDocs } from "firebase/firestore"
 
 export default function ManagementDashboard() {
+  const router = useRouter()
   const [users, setUsers] = useState<any[]>([])
   const [jobs, setJobs] = useState<any[]>([])
   const [contracts, setContracts] = useState<any[]>([])
@@ -48,6 +50,10 @@ export default function ManagementDashboard() {
         setContracts(contractList)
       } catch (err) {
         console.error("Failed to fetch data:", err)
+        // Use fallback data if Firebase fails
+        setUsers([])
+        setJobs([])
+        setContracts([])
       } finally {
         setLoading(false)
       }
@@ -420,13 +426,13 @@ export default function ManagementDashboard() {
                   <div className="text-2xl font-bold text-blue-600">{users.length}</div>
                   <div className="text-sm text-gray-600">Total Users</div>
                 </div>
-                <div className="text-center">
+                <div className="text-center cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => router.push('/workers')}>
                   <div className="text-2xl font-bold text-green-600">
                     {users.filter((u) => u.userType === "worker").length}
                   </div>
                   <div className="text-sm text-gray-600">Workers</div>
                 </div>
-                <div className="text-center">
+                <div className="text-center cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => router.push('/employers')}>
                   <div className="text-2xl font-bold text-purple-600">
                     {users.filter((u) => u.userType === "employer").length}
                   </div>

@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUsers } from "../context/user-context"
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { AlertCircle, CheckCircle2, Loader2, Shield } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { verifyFaydaID } from "@/lib/fayda-api"
 
 const ethiopianRegions = [
   "Addis Ababa",
@@ -50,8 +51,12 @@ export default function Signup() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
+  const [faydaVerified, setFaydaVerified] = useState(false)
+  const [verifyingFayda, setVerifyingFayda] = useState(false)
 
   const [formData, setFormData] = useState({
+    fin: "",
+    fan: "",
     fydaId: "",
     firstName: "",
     lastName: "",
@@ -109,7 +114,7 @@ export default function Signup() {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(formData.fydaId && formData.firstName && formData.lastName && formData.phone && formData.email)
+        return !!(formData.fin && formData.fan && formData.firstName && formData.lastName && formData.phone && formData.email)
       case 2:
         return !!(formData.region && formData.city)
       case 3:
@@ -129,7 +134,36 @@ export default function Signup() {
     }
   }
 
+  const verifyFayda = async () => {
+    if (!formData.fin || !formData.fan) {
+      setError("Please enter both FIN and FAN")
+      return
+    }
+
+    setVerifyingFayda(true)
+    setError("")
+
+    try {
+      const result = await verifyFaydaID(formData.fin, formData.fan)
+      if (result.verified) {
+        setFaydaVerified(true)
+        setFormData(prev => ({ ...prev, fydaId: `ET-${formData.fin}` }))
+      } else {
+        setError(result.error || "Fayda verification failed")
+      }
+    } catch (err) {
+      setError("Verification service error")
+    } finally {
+      setVerifyingFayda(false)
+    }
+  }
+
   const handleNext = () => {
+    if (currentStep === 1 && !faydaVerified) {
+      setError("Please verify your Fayda ID first")
+      return
+    }
+    
     if (validateStep(currentStep)) {
       setCurrentStep((prev) => Math.min(prev + 1, 5))
       setError("")
@@ -149,11 +183,28 @@ export default function Signup() {
       return
     }
 
+    if (!faydaVerified) {
+      setError("Please verify your Fayda ID first")
+      return
+    }
+
     setLoading(true)
     setError("")
 
     try {
-      await addUser(formData)
+      // Save to Firebase
+      const userData = {
+        ...formData,
+        status: "pending",
+        faydaVerified: true,
+        registrationDate: new Date().toISOString().split('T')[0],
+        lastActive: new Date().toISOString().split('T')[0]
+      }
+      
+      const { addDoc, collection } = await import('firebase/firestore')
+      const { db } = await import('@/lib/firebase')
+      
+      await addDoc(collection(db, 'users'), userData)
       setSuccess(true)
     } catch (err) {
       setError("Failed to register. Please try again.")
@@ -225,14 +276,58 @@ export default function Signup() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="fydaId">FYDA ID *</Label>
-                  <Input
-                    id="fydaId"
-                    value={formData.fydaId}
-                    onChange={(e) => handleInputChange("fydaId", e.target.value)}
-                    placeholder="ET-AA-1234567"
-                  />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fin">FIN (Fayda ID Number) *</Label>
+                      <Input
+                        id="fin"
+                        value={formData.fin}
+                        onChange={(e) => handleInputChange("fin", e.target.value)}
+                        placeholder="6140798523917519"
+                        disabled={faydaVerified}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="fan">FAN (Fayda Access Number) *</Label>
+                      <Input
+                        id="fan"
+                        value={formData.fan}
+                        onChange={(e) => handleInputChange("fan", e.target.value)}
+                        placeholder="3126894653473958"
+                        disabled={faydaVerified}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      onClick={verifyFayda}
+                      disabled={verifyingFayda || faydaVerified || !formData.fin || !formData.fan}
+                      variant={faydaVerified ? "default" : "outline"}
+                      className={faydaVerified ? "bg-green-600 hover:bg-green-700" : ""}
+                    >
+                      {verifyingFayda ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Verifying...
+                        </>
+                      ) : faydaVerified ? (
+                        <>
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Verified
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="mr-2 h-4 w-4" />
+                          Verify Fayda ID
+                        </>
+                      )}
+                    </Button>
+                    {faydaVerified && (
+                      <span className="text-sm text-green-600">✓ Fayda ID verified successfully</span>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

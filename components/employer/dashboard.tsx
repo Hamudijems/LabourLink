@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -24,7 +24,7 @@ export default function EmployerDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return
+      if (!user?.uid) return
       try {
         const jobsCollection = collection(db, "jobs")
         const q = query(jobsCollection, where("employerId", "==", user.uid))

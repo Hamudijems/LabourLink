@@ -4,17 +4,23 @@ import { createUserWithEmailAndPassword } from "firebase/auth"
 import { setDoc, doc } from "firebase/firestore"
 
 export async function POST(request: Request) {
-  const { email, password, faydaId, skills } = await request.json()
+  const { name, email, password, phone, fin, fan, skills, userType } = await request.json()
 
   try {
-
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     const user = userCredential.user
 
     await setDoc(doc(db, "users", user.uid), {
-      faydaId,
-      skills,
+      name,
+      email,
+      phone,
+      fin,
+      fan,
+      skills: userType === "worker" ? skills : undefined,
+      userType: userType || "worker",
+      status: "pending",
       isFaydaVerified: true,
+      registrationDate: new Date().toISOString(),
     })
 
     return NextResponse.json({ success: true, userId: user.uid })

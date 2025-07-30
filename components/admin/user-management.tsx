@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { db } from "@/lib/firebase"
+import { collection, getDocs, deleteDoc, updateDoc, doc } from "firebase/firestore"
 import {
   Search,
   MoreHorizontal,
@@ -61,12 +62,30 @@ export default function UserManagement() {
     fetchUsers()
   }, [])
 
+  const pendingUsers = users.filter(u => u.status === "pending")
+  
+  const refreshUsers = async () => {
+    setLoading(true)
+    try {
+      const usersCollection = collection(db, "users")
+      const userSnapshot = await getDocs(usersCollection)
+      const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      setUsers(userList)
+    } catch (err) {
+      setError("Failed to refresh users.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredUsers = users.filter((user) => {
+    const fullName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.faydaId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm)
+      fullName.includes(searchTerm.toLowerCase()) ||
+      (user.fin || '').includes(searchTerm.toLowerCase()) ||
+      (user.fan || '').includes(searchTerm.toLowerCase()) ||
+      (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.phone || '').includes(searchTerm)
 
     const matchesStatus = statusFilter === "all" || user.status === statusFilter
     const matchesType = typeFilter === "all" || user.userType === typeFilter
@@ -268,25 +287,29 @@ export default function UserManagement() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{user.name}</p>
+                          <p className="font-medium">{user.name || `${user.firstName || ''} ${user.lastName || ''}`}</p>
                           <p className="text-sm text-gray-500">{user.email}</p>
                           <p className="text-sm text-gray-500">{user.phone}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">{user.faydaId}</code>
+                        <div className="space-y-1">
+                          <div className="text-xs text-gray-500">FIN:</div>
+                          <code className="text-sm bg-gray-100 px-2 py-1 rounded block">{user.fin}</code>
+                          <div className="text-xs text-gray-500">FAN:</div>
+                          <code className="text-sm bg-gray-100 px-2 py-1 rounded block">{user.fan}</code>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.userType === "worker" ? "default" : "secondary"}>
+                          {user.userType}
+                        </Badge>
                       </TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
                       <TableCell>
-                        {user.isFaydaVerified ? (
-                          <Badge variant="default" className="bg-green-100 text-green-800">
-                            Verified
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                            Pending
-                          </Badge>
-                        )}
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          Verified
+                        </Badge>
                       </TableCell>
                       <TableCell>{user.registrationDate}</TableCell>
                       <TableCell>{user.lastActive}</TableCell>
@@ -366,7 +389,7 @@ export default function UserManagement() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              User Details - {selectedUser?.firstName} {selectedUser?.lastName}
+              User Details - {selectedUser?.name || `${selectedUser?.firstName || ''} ${selectedUser?.lastName || ''}`}
             </DialogTitle>
             <DialogDescription>Complete user information and activity</DialogDescription>
           </DialogHeader>
@@ -377,8 +400,12 @@ export default function UserManagement() {
                 <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">FYDA ID</p>
-                    <p className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{selectedUser.fydaId}</p>
+                    <p className="text-sm font-medium text-gray-600">FIN</p>
+                    <p className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{selectedUser.fin}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">FAN</p>
+                    <p className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{selectedUser.fan}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">User Type</p>
