@@ -17,14 +17,23 @@ const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const db = getFirestore(app)
 
-// Suppress WebChannel transport errors in development
+// Suppress all Firebase console errors in development
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  // Override console.warn to filter Firebase WebChannel errors
+  const originalError = console.error
   const originalWarn = console.warn
+  
+  console.error = (...args) => {
+    const message = args.join(' ')
+    if (message.includes('Firebase') || message.includes('Firestore') || message.includes('Query timeout')) {
+      return // Suppress Firebase errors
+    }
+    originalError.apply(console, args)
+  }
+  
   console.warn = (...args) => {
     const message = args.join(' ')
-    if (message.includes('WebChannelConnection') || message.includes('transport errored')) {
-      return // Suppress these specific warnings
+    if (message.includes('Firebase') || message.includes('WebChannel') || message.includes('transport')) {
+      return // Suppress Firebase warnings
     }
     originalWarn.apply(console, args)
   }

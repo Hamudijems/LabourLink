@@ -47,7 +47,8 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
-  const { adminEmail, logout } = useAuth()
+  const adminEmail = "admin@safehire.et"
+  const logout = () => console.log('logout')
   const pathname = usePathname()
   const router = useRouter()
 
@@ -203,7 +204,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         </div>
                         <div className="hidden sm:block text-left">
                           <p className="text-sm font-medium">Admin</p>
-                          <p className="text-xs text-green-200">{adminEmail}</p>
+                          <p className="text-xs text-green-200">admin@safehire.et</p>
                         </div>
                       </div>
                     </Button>

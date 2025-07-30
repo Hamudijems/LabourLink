@@ -68,10 +68,15 @@ export default function SignupPage() {
       const data = await response.json()
       
       if (response.ok) {
+        // Store user in localStorage
+        const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+        existingUsers.push(data.user)
+        localStorage.setItem('registeredUsers', JSON.stringify(existingUsers))
+        
         alert("Account created successfully! You can now login.")
         window.location.href = "/login"
       } else {
-        setError(data.error || "Failed to create account. Please try again.")
+        setError(data.error || "Failed to register user")
       }
     } catch (error) {
       setError("An unexpected error occurred. Please try again.")

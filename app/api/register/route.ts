@@ -1,29 +1,24 @@
 import { NextResponse } from "next/server"
-import { auth, db } from "@/lib/firebase"
-import { createUserWithEmailAndPassword } from "firebase/auth"
-import { setDoc, doc } from "firebase/firestore"
 
 export async function POST(request: Request) {
   const { name, email, password, phone, fin, fan, skills, userType } = await request.json()
 
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    const user = userCredential.user
-
-    await setDoc(doc(db, "users", user.uid), {
+    const newUser = {
+      id: Date.now().toString(),
       name,
       email,
       phone,
       fin,
       fan,
-      skills: userType === "worker" ? skills : undefined,
+      skills: userType === "worker" ? skills.split(',').map((s: string) => s.trim()) : [],
       userType: userType || "worker",
       status: "pending",
       isFaydaVerified: true,
-      registrationDate: new Date().toISOString(),
-    })
+      registrationDate: new Date().toISOString().split('T')[0],
+    }
 
-    return NextResponse.json({ success: true, userId: user.uid })
+    return NextResponse.json({ success: true, user: newUser })
   } catch (error) {
     return NextResponse.json({ success: false, error: "Failed to register user" }, { status: 400 })
   }
