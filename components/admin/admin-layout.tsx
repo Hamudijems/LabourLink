@@ -98,6 +98,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: "/student-registration",
     },
     {
+      id: "k12-registration",
+      label: "K-12 Registration",
+      icon: Users,
+      description: "Register K-12 students (Grades 1-12)",
+      href: "/k12-registration",
+    },
+    {
       id: "student-graduation",
       label: "Student Graduation",
       icon: Users,

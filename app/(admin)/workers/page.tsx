@@ -4,9 +4,11 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Phone, Mail, CheckCircle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Users, Phone, Mail, CheckCircle, Search } from "lucide-react"
 
 export default function WorkersPage() {
+  const [searchTerm, setSearchTerm] = useState("")
   const [workers, setWorkers] = useState([
     {
       id: "1",
@@ -40,6 +42,15 @@ export default function WorkersPage() {
     setWorkers(prev => [...prev, ...registeredWorkers])
   }, [])
 
+  const filteredWorkers = workers.filter(worker => 
+    worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    worker.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    worker.phone.includes(searchTerm) ||
+    worker.fin.includes(searchTerm) ||
+    worker.fan.includes(searchTerm) ||
+    (Array.isArray(worker.skills) ? worker.skills.join(' ') : worker.skills).toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   const handleStatusUpdate = (workerId: string, newStatus: string) => {
     setWorkers(prev => prev.map(worker => 
       worker.id === workerId ? { ...worker, status: newStatus } : worker
@@ -50,8 +61,27 @@ export default function WorkersPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Workers Management</h1>
       
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search workers by name, email, phone, FIN/FAN, or skills..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+      
       <div className="grid gap-4">
-        {workers.map((worker) => (
+        {filteredWorkers.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-gray-500">
+              {workers.length === 0 ? "No workers registered yet" : "No workers match your search"}
+            </CardContent>
+          </Card>
+        ) : (
+          filteredWorkers.map((worker) => (
           <Card key={worker.id}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -91,7 +121,8 @@ export default function WorkersPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   )

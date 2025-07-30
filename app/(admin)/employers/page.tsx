@@ -4,9 +4,11 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Briefcase, Phone, Mail, Building, CheckCircle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Briefcase, Phone, Mail, Building, CheckCircle, Search } from "lucide-react"
 
 export default function EmployersPage() {
+  const [searchTerm, setSearchTerm] = useState("")
   const [employers, setEmployers] = useState([
     {
       id: "1",
@@ -44,6 +46,16 @@ export default function EmployersPage() {
     setEmployers(prev => [...prev, ...registeredEmployers])
   }, [])
 
+  const filteredEmployers = employers.filter(employer => 
+    employer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employer.phone.includes(searchTerm) ||
+    employer.fin.includes(searchTerm) ||
+    employer.fan.includes(searchTerm) ||
+    employer.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employer.businessType.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   const handleStatusUpdate = (employerId: string, newStatus: string) => {
     setEmployers(prev => prev.map(employer => 
       employer.id === employerId ? { ...employer, status: newStatus } : employer
@@ -54,8 +66,27 @@ export default function EmployersPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Employers Management</h1>
       
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search employers by name, email, company, or business type..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+      
       <div className="grid gap-4">
-        {employers.map((employer) => (
+        {filteredEmployers.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-gray-500">
+              {employers.length === 0 ? "No employers registered yet" : "No employers match your search"}
+            </CardContent>
+          </Card>
+        ) : (
+          filteredEmployers.map((employer) => (
           <Card key={employer.id}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -96,7 +127,8 @@ export default function EmployersPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   )

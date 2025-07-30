@@ -9,39 +9,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { db } from "@/lib/firebase"
-import { collection, addDoc, getDocs } from "firebase/firestore"
 import { verifyFaydaID } from "@/lib/fayda-api"
 import { 
-  GraduationCap, 
+  BookOpen, 
   Plus, 
   CheckCircle, 
-  AlertTriangle, 
-  RefreshCw,
+  AlertTriangle,
   Shield,
   Loader2,
   Search
 } from "lucide-react"
 
-interface Student {
+interface K12Student {
   id: string
-  fin: string
-  fan: string
+  parentFin: string
+  parentFan: string
   firstName: string
   lastName: string
-  email: string
-  phone: string
-  institution: string
-  program: string
-  startDate: string
-  expectedGraduation: string
-  status: "active" | "graduated" | "dropped"
+  dateOfBirth: string
+  grade: string
+  school: string
+  parentName: string
+  parentEmail: string
+  parentPhone: string
+  address: string
+  emergencyContact: string
+  emergencyPhone: string
+  status: "enrolled" | "transferred" | "graduated"
   faydaVerified: boolean
   registrationDate: string
 }
 
-export default function StudentRegistration() {
-  const [students, setStudents] = useState<Student[]>([])
+export default function K12Registration() {
+  const [students, setStudents] = useState<K12Student[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -50,16 +50,19 @@ export default function StudentRegistration() {
   const [searchTerm, setSearchTerm] = useState("")
 
   const [formData, setFormData] = useState({
-    fin: "",
-    fan: "",
+    parentFin: "",
+    parentFan: "",
     firstName: "",
     lastName: "",
-    email: "",
-    phone: "",
-    institution: "",
-    program: "",
-    startDate: "",
-    expectedGraduation: ""
+    dateOfBirth: "",
+    grade: "",
+    school: "",
+    parentName: "",
+    parentEmail: "",
+    parentPhone: "",
+    address: "",
+    emergencyContact: "",
+    emergencyPhone: ""
   })
 
   useEffect(() => {
@@ -68,16 +71,16 @@ export default function StudentRegistration() {
 
   const fetchStudents = async () => {
     try {
-      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
-      setStudents(registeredStudents)
+      const k12Students = JSON.parse(localStorage.getItem('k12Students') || '[]')
+      setStudents(k12Students)
     } catch (err) {
-      console.error("Error fetching students:", err)
+      console.error("Error fetching K-12 students:", err)
     }
   }
 
   const verifyFayda = async () => {
-    if (!formData.fin || !formData.fan) {
-      setError("Please enter both FIN and FAN")
+    if (!formData.parentFin || !formData.parentFan) {
+      setError("Please enter both parent FIN and FAN")
       return
     }
 
@@ -85,12 +88,12 @@ export default function StudentRegistration() {
     setError(null)
 
     try {
-      const result = await verifyFaydaID(formData.fin, formData.fan)
+      const result = await verifyFaydaID(formData.parentFin, formData.parentFan)
       if (result.verified) {
         setFaydaVerified(true)
-        setSuccess("Fayda ID verified successfully")
+        setSuccess("Parent Fayda ID verified successfully")
       } else {
-        setError(result.error || "Fayda verification failed")
+        setError(result.error || "Parent Fayda verification failed")
       }
     } catch (err) {
       setError("Verification service error")
@@ -101,7 +104,7 @@ export default function StudentRegistration() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    if (field === "fin" || field === "fan") {
+    if (field === "parentFin" || field === "parentFan") {
       setFaydaVerified(false)
     }
   }
@@ -110,7 +113,7 @@ export default function StudentRegistration() {
     e.preventDefault()
     
     if (!faydaVerified) {
-      setError("Please verify Fayda ID first")
+      setError("Please verify parent Fayda ID first")
       return
     }
 
@@ -120,37 +123,39 @@ export default function StudentRegistration() {
     try {
       const studentData = {
         ...formData,
-        status: "active",
+        status: "enrolled",
         faydaVerified: true,
         registrationDate: new Date().toISOString().split('T')[0]
       }
 
-      // Store in localStorage
-      const existingStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
+      const existingStudents = JSON.parse(localStorage.getItem('k12Students') || '[]')
       const newStudent = {
         ...studentData,
         id: Date.now().toString()
       }
       existingStudents.push(newStudent)
-      localStorage.setItem('registeredStudents', JSON.stringify(existingStudents))
+      localStorage.setItem('k12Students', JSON.stringify(existingStudents))
       
-      setSuccess("Student registered successfully")
+      setSuccess("K-12 student registered successfully")
       setFormData({
-        fin: "",
-        fan: "",
+        parentFin: "",
+        parentFan: "",
         firstName: "",
         lastName: "",
-        email: "",
-        phone: "",
-        institution: "",
-        program: "",
-        startDate: "",
-        expectedGraduation: ""
+        dateOfBirth: "",
+        grade: "",
+        school: "",
+        parentName: "",
+        parentEmail: "",
+        parentPhone: "",
+        address: "",
+        emergencyContact: "",
+        emergencyPhone: ""
       })
       setFaydaVerified(false)
       await fetchStudents()
     } catch (err) {
-      setError("Failed to register student")
+      setError("Failed to register K-12 student")
       console.error("Registration error:", err)
     } finally {
       setLoading(false)
@@ -160,19 +165,19 @@ export default function StudentRegistration() {
   const filteredStudents = students.filter(student => 
     student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.institution.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.program.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase())
+    student.school.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.parentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.grade.includes(searchTerm)
   )
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      active: { variant: "default" as const, className: "bg-blue-100 text-blue-800" },
+      enrolled: { variant: "default" as const, className: "bg-blue-100 text-blue-800" },
       graduated: { variant: "default" as const, className: "bg-green-100 text-green-800" },
-      dropped: { variant: "destructive" as const, className: "bg-red-100 text-red-800" }
+      transferred: { variant: "secondary" as const, className: "bg-yellow-100 text-yellow-800" }
     }
     
-    const config = variants[status as keyof typeof variants] || variants.active
+    const config = variants[status as keyof typeof variants] || variants.enrolled
     
     return (
       <Badge variant={config.variant} className={config.className}>
@@ -187,9 +192,9 @@ export default function StudentRegistration() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <GraduationCap className="h-5 w-5 text-blue-500" />
+              <BookOpen className="h-5 w-5 text-blue-500" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Students</p>
+                <p className="text-sm font-medium text-gray-600">Total K-12 Students</p>
                 <p className="text-2xl font-bold">{students.length}</p>
               </div>
             </div>
@@ -200,8 +205,8 @@ export default function StudentRegistration() {
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Students</p>
-                <p className="text-2xl font-bold">{students.filter(s => s.status === "active").length}</p>
+                <p className="text-sm font-medium text-gray-600">Enrolled Students</p>
+                <p className="text-2xl font-bold">{students.filter(s => s.status === "enrolled").length}</p>
               </div>
             </div>
           </CardContent>
@@ -209,7 +214,7 @@ export default function StudentRegistration() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <GraduationCap className="h-5 w-5 text-green-500" />
+              <BookOpen className="h-5 w-5 text-green-500" />
               <div>
                 <p className="text-sm font-medium text-gray-600">Graduated</p>
                 <p className="text-2xl font-bold">{students.filter(s => s.status === "graduated").length}</p>
@@ -224,10 +229,10 @@ export default function StudentRegistration() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
-              Register New Student
+              Register K-12 Student
             </CardTitle>
             <CardDescription>
-              Register students starting college/university with Fayda ID verification
+              Register students for grades 1-12 with parent Fayda ID verification
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -248,21 +253,21 @@ export default function StudentRegistration() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="fin">FIN *</Label>
+                  <Label htmlFor="parentFin">Parent FIN *</Label>
                   <Input
-                    id="fin"
-                    value={formData.fin}
-                    onChange={(e) => handleInputChange("fin", e.target.value)}
+                    id="parentFin"
+                    value={formData.parentFin}
+                    onChange={(e) => handleInputChange("parentFin", e.target.value)}
                     placeholder="6140798523917519"
                     disabled={faydaVerified}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="fan">FAN *</Label>
+                  <Label htmlFor="parentFan">Parent FAN *</Label>
                   <Input
-                    id="fan"
-                    value={formData.fan}
-                    onChange={(e) => handleInputChange("fan", e.target.value)}
+                    id="parentFan"
+                    value={formData.parentFan}
+                    onChange={(e) => handleInputChange("parentFan", e.target.value)}
                     placeholder="3126894653473958"
                     disabled={faydaVerified}
                   />
@@ -273,7 +278,7 @@ export default function StudentRegistration() {
                 <Button
                   type="button"
                   onClick={verifyFayda}
-                  disabled={verifyingFayda || faydaVerified || !formData.fin || !formData.fan}
+                  disabled={verifyingFayda || faydaVerified || !formData.parentFin || !formData.parentFan}
                   variant={faydaVerified ? "default" : "outline"}
                   className={faydaVerified ? "bg-green-600 hover:bg-green-700" : ""}
                 >
@@ -290,18 +295,18 @@ export default function StudentRegistration() {
                   ) : (
                     <>
                       <Shield className="mr-2 h-4 w-4" />
-                      Verify Fayda ID
+                      Verify Parent ID
                     </>
                   )}
                 </Button>
                 {faydaVerified && (
-                  <span className="text-sm text-green-600">✓ Fayda ID verified</span>
+                  <span className="text-sm text-green-600">✓ Parent ID verified</span>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">First Name *</Label>
+                  <Label htmlFor="firstName">Student First Name *</Label>
                   <Input
                     id="firstName"
                     value={formData.firstName}
@@ -310,7 +315,7 @@ export default function StudentRegistration() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Label htmlFor="lastName">Student Last Name *</Label>
                   <Input
                     id="lastName"
                     value={formData.lastName}
@@ -322,66 +327,109 @@ export default function StudentRegistration() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="dateOfBirth">Date of Birth *</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    id="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone *</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    required
-                  />
+                  <Label htmlFor="grade">Grade *</Label>
+                  <Select value={formData.grade} onValueChange={(value) => handleInputChange("grade", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Grade 1</SelectItem>
+                      <SelectItem value="2">Grade 2</SelectItem>
+                      <SelectItem value="3">Grade 3</SelectItem>
+                      <SelectItem value="4">Grade 4</SelectItem>
+                      <SelectItem value="5">Grade 5</SelectItem>
+                      <SelectItem value="6">Grade 6</SelectItem>
+                      <SelectItem value="7">Grade 7</SelectItem>
+                      <SelectItem value="8">Grade 8</SelectItem>
+                      <SelectItem value="9">Grade 9</SelectItem>
+                      <SelectItem value="10">Grade 10</SelectItem>
+                      <SelectItem value="11">Grade 11</SelectItem>
+                      <SelectItem value="12">Grade 12</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="institution">Institution *</Label>
+                <Label htmlFor="school">School Name *</Label>
                 <Input
-                  id="institution"
-                  value={formData.institution}
-                  onChange={(e) => handleInputChange("institution", e.target.value)}
-                  placeholder="e.g., Addis Ababa University"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="program">Program/Degree *</Label>
-                <Input
-                  id="program"
-                  value={formData.program}
-                  onChange={(e) => handleInputChange("program", e.target.value)}
-                  placeholder="e.g., Computer Science"
+                  id="school"
+                  value={formData.school}
+                  onChange={(e) => handleInputChange("school", e.target.value)}
+                  placeholder="e.g., Addis Ababa Elementary School"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="startDate">Start Date *</Label>
+                  <Label htmlFor="parentName">Parent/Guardian Name *</Label>
                   <Input
-                    id="startDate"
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => handleInputChange("startDate", e.target.value)}
+                    id="parentName"
+                    value={formData.parentName}
+                    onChange={(e) => handleInputChange("parentName", e.target.value)}
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="expectedGraduation">Expected Graduation *</Label>
+                  <Label htmlFor="parentPhone">Parent Phone *</Label>
                   <Input
-                    id="expectedGraduation"
-                    type="date"
-                    value={formData.expectedGraduation}
-                    onChange={(e) => handleInputChange("expectedGraduation", e.target.value)}
+                    id="parentPhone"
+                    value={formData.parentPhone}
+                    onChange={(e) => handleInputChange("parentPhone", e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="parentEmail">Parent Email *</Label>
+                <Input
+                  id="parentEmail"
+                  type="email"
+                  value={formData.parentEmail}
+                  onChange={(e) => handleInputChange("parentEmail", e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="address">Home Address *</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  placeholder="Full home address"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="emergencyContact">Emergency Contact Name *</Label>
+                  <Input
+                    id="emergencyContact"
+                    value={formData.emergencyContact}
+                    onChange={(e) => handleInputChange("emergencyContact", e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="emergencyPhone">Emergency Contact Phone *</Label>
+                  <Input
+                    id="emergencyPhone"
+                    value={formData.emergencyPhone}
+                    onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
                     required
                   />
                 </div>
@@ -394,7 +442,7 @@ export default function StudentRegistration() {
                     Registering...
                   </>
                 ) : (
-                  "Register Student"
+                  "Register K-12 Student"
                 )}
               </Button>
             </form>
@@ -403,36 +451,37 @@ export default function StudentRegistration() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Registered Students</CardTitle>
-            <CardDescription>All students registered in the system</CardDescription>
+            <CardTitle>Registered K-12 Students</CardTitle>
+            <CardDescription>All K-12 students registered in the system</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search students by name, institution, program, or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <CardContent className="pb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search students by name, school, grade, or parent..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
+          </CardContent>
+          <CardContent className="pt-0">
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Student</TableHead>
-                    <TableHead>Institution</TableHead>
+                    <TableHead>School</TableHead>
+                    <TableHead>Grade</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Start Date</TableHead>
+                    <TableHead>Parent</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredStudents.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                        {students.length === 0 ? "No students registered yet" : "No students match your search"}
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        {students.length === 0 ? "No K-12 students registered yet" : "No students match your search"}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -441,12 +490,20 @@ export default function StudentRegistration() {
                         <TableCell>
                           <div>
                             <p className="font-medium">{student.firstName} {student.lastName}</p>
-                            <p className="text-sm text-gray-500">{student.program}</p>
+                            <p className="text-sm text-gray-500">DOB: {student.dateOfBirth}</p>
                           </div>
                         </TableCell>
-                        <TableCell>{student.institution}</TableCell>
+                        <TableCell>{student.school}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">Grade {student.grade}</Badge>
+                        </TableCell>
                         <TableCell>{getStatusBadge(student.status)}</TableCell>
-                        <TableCell>{student.startDate}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm font-medium">{student.parentName}</p>
+                            <p className="text-sm text-gray-500">{student.parentPhone}</p>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
