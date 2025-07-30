@@ -42,6 +42,11 @@ export default function AdminLogin() {
           </div>
           <CardTitle className="text-2xl">Admin Login</CardTitle>
           <CardDescription>Sign in to access the EthioWork management dashboard</CardDescription>
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-1">Test Credentials:</p>
+            <p className="text-xs text-blue-600 dark:text-blue-300">Email: hamudijems4@gmail.com</p>
+            <p className="text-xs text-blue-600 dark:text-blue-300">Password: ahmed123</p>
+          </div>
         </CardHeader>
 
         <CardContent>

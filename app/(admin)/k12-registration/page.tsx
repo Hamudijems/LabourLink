@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { verifyFaydaID } from "@/lib/fayda-api"
+import { addK12Student, subscribeToK12Students, FirebaseK12Student } from "@/services/student-services"
 import { 
   BookOpen, 
   Plus, 
@@ -20,28 +21,10 @@ import {
   Search
 } from "lucide-react"
 
-interface K12Student {
-  id: string
-  parentFin: string
-  parentFan: string
-  firstName: string
-  lastName: string
-  dateOfBirth: string
-  grade: string
-  school: string
-  parentName: string
-  parentEmail: string
-  parentPhone: string
-  address: string
-  emergencyContact: string
-  emergencyPhone: string
-  status: "enrolled" | "transferred" | "graduated"
-  faydaVerified: boolean
-  registrationDate: string
-}
+
 
 export default function K12Registration() {
-  const [students, setStudents] = useState<K12Student[]>([])
+  const [students, setStudents] = useState<FirebaseK12Student[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -66,17 +49,12 @@ export default function K12Registration() {
   })
 
   useEffect(() => {
-    fetchStudents()
-  }, [])
+    const unsubscribe = subscribeToK12Students((studentsData) => {
+      setStudents(studentsData)
+    })
 
-  const fetchStudents = async () => {
-    try {
-      const k12Students = JSON.parse(localStorage.getItem('k12Students') || '[]')
-      setStudents(k12Students)
-    } catch (err) {
-      console.error("Error fetching K-12 students:", err)
-    }
-  }
+    return () => unsubscribe()
+  }, [])
 
   const verifyFayda = async () => {
     if (!formData.parentFin || !formData.parentFan) {
@@ -123,18 +101,12 @@ export default function K12Registration() {
     try {
       const studentData = {
         ...formData,
-        status: "enrolled",
+        status: "enrolled" as const,
         faydaVerified: true,
         registrationDate: new Date().toISOString().split('T')[0]
       }
 
-      const existingStudents = JSON.parse(localStorage.getItem('k12Students') || '[]')
-      const newStudent = {
-        ...studentData,
-        id: Date.now().toString()
-      }
-      existingStudents.push(newStudent)
-      localStorage.setItem('k12Students', JSON.stringify(existingStudents))
+      await addK12Student(studentData)
       
       setSuccess("K-12 student registered successfully")
       setFormData({
@@ -153,9 +125,9 @@ export default function K12Registration() {
         emergencyPhone: ""
       })
       setFaydaVerified(false)
-      await fetchStudents()
     } catch (err) {
-      setError("Failed to register K-12 student")
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      setError(`Failed to register K-12 student: ${errorMessage}`)
       console.error("Registration error:", err)
     } finally {
       setLoading(false)

@@ -9,9 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { db } from "@/lib/firebase"
-import { collection, addDoc, getDocs } from "firebase/firestore"
 import { verifyFaydaID } from "@/lib/fayda-api"
+import { addStudent, subscribeToStudents, FirebaseStudent } from "@/services/student-services"
 import { 
   GraduationCap, 
   Plus, 
@@ -23,31 +22,17 @@ import {
   Search
 } from "lucide-react"
 
-interface Student {
-  id: string
-  fin: string
-  fan: string
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  institution: string
-  program: string
-  startDate: string
-  expectedGraduation: string
-  status: "active" | "graduated" | "dropped"
-  faydaVerified: boolean
-  registrationDate: string
-}
+
 
 export default function StudentRegistration() {
-  const [students, setStudents] = useState<Student[]>([])
+  const [students, setStudents] = useState<FirebaseStudent[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [verifyingFayda, setVerifyingFayda] = useState(false)
   const [faydaVerified, setFaydaVerified] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [refreshing, setRefreshing] = useState(false)
 
   const [formData, setFormData] = useState({
     fin: "",
@@ -63,15 +48,33 @@ export default function StudentRegistration() {
   })
 
   useEffect(() => {
-    fetchStudents()
+    console.log('Setting up student subscription')
+    const unsubscribe = subscribeToStudents((studentsData) => {
+      console.log('Received students data:', studentsData)
+      setStudents(studentsData)
+    })
+
+    return () => {
+      console.log('Cleaning up student subscription')
+      unsubscribe()
+    }
   }, [])
 
-  const fetchStudents = async () => {
+  const manualRefresh = async () => {
+    setRefreshing(true)
     try {
-      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
-      setStudents(registeredStudents)
-    } catch (err) {
-      console.error("Error fetching students:", err)
+      const { db } = await import('@/lib/firebase').then(m => m.getFirebaseServices())
+      if (db.ready && db.db) {
+        const { getDocs, collection } = await import('firebase/firestore')
+        const snapshot = await getDocs(collection(db.db, 'students'))
+        const studentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        console.log('Manual refresh - students found:', studentsData)
+        setStudents(studentsData as any)
+      }
+    } catch (error) {
+      console.error('Manual refresh failed:', error)
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -120,19 +123,14 @@ export default function StudentRegistration() {
     try {
       const studentData = {
         ...formData,
-        status: "active",
+        status: "active" as const,
         faydaVerified: true,
         registrationDate: new Date().toISOString().split('T')[0]
       }
 
-      // Store in localStorage
-      const existingStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
-      const newStudent = {
-        ...studentData,
-        id: Date.now().toString()
-      }
-      existingStudents.push(newStudent)
-      localStorage.setItem('registeredStudents', JSON.stringify(existingStudents))
+      console.log('Registering student:', studentData)
+      const studentId = await addStudent(studentData)
+      console.log('Student registered with ID:', studentId)
       
       setSuccess("Student registered successfully")
       setFormData({
@@ -148,9 +146,9 @@ export default function StudentRegistration() {
         expectedGraduation: ""
       })
       setFaydaVerified(false)
-      await fetchStudents()
     } catch (err) {
-      setError("Failed to register student")
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      setError(`Failed to register student: ${errorMessage}`)
       console.error("Registration error:", err)
     } finally {
       setLoading(false)
@@ -403,7 +401,13 @@ export default function StudentRegistration() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Registered Students</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              Registered Students
+              <Button variant="outline" size="sm" onClick={manualRefresh} disabled={refreshing}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </CardTitle>
             <CardDescription>All students registered in the system</CardDescription>
           </CardHeader>
           <CardContent>

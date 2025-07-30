@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { db } from "@/lib/firebase"
-import { collection, getDocs, deleteDoc, updateDoc, doc } from "firebase/firestore"
+import { subscribeToUsers, updateUser, deleteUser, FirebaseUser } from "@/services/firebase-services"
 import {
   Search,
   MoreHorizontal,
@@ -36,7 +35,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default function UserManagement() {
-  const [users, setUsers] = useState<any[]>([])
+  const [users, setUsers] = useState<FirebaseUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -46,44 +45,26 @@ export default function UserManagement() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const usersCollection = collection(db, "users")
-        const userSnapshot = await getDocs(usersCollection)
-        const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-        setUsers(userList)
-      } catch (err) {
-        setError("Failed to fetch users.")
-      } finally {
-        setLoading(false)
-      }
-    }
+    const unsubscribe = subscribeToUsers((usersData) => {
+      setUsers(usersData)
+      setLoading(false)
+    })
 
-    fetchUsers()
+    return () => unsubscribe()
   }, [])
 
   const pendingUsers = users.filter(u => u.status === "pending")
   
-  const refreshUsers = async () => {
-    setLoading(true)
-    try {
-      const usersCollection = collection(db, "users")
-      const userSnapshot = await getDocs(usersCollection)
-      const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      setUsers(userList)
-    } catch (err) {
-      setError("Failed to refresh users.")
-    } finally {
-      setLoading(false)
-    }
+  const refreshUsers = () => {
+    // Firebase subscription handles real-time updates automatically
+    console.log('Users refreshed via Firebase subscription')
   }
 
   const filteredUsers = users.filter((user) => {
-    const fullName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()
     const matchesSearch =
       fullName.includes(searchTerm.toLowerCase()) ||
-      (user.fin || '').includes(searchTerm.toLowerCase()) ||
-      (user.fan || '').includes(searchTerm.toLowerCase()) ||
+      (user.fydaId || '').includes(searchTerm.toLowerCase()) ||
       (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.phone || '').includes(searchTerm)
 
@@ -97,17 +78,13 @@ export default function UserManagement() {
     setActionLoading(`${userId}-${action}`)
     try {
       if (action === "delete") {
-        await deleteDoc(doc(db, "users", userId))
+        await deleteUser(userId)
       } else if (newStatus) {
-        await updateDoc(doc(db, "users", userId), { status: newStatus })
+        await updateUser(userId, { status: newStatus as any })
       }
-      // Refresh users
-      const usersCollection = collection(db, "users")
-      const userSnapshot = await getDocs(usersCollection)
-      const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      setUsers(userList)
     } catch (err) {
       console.error(`Error performing ${action}:`, err)
+      setError(`Failed to ${action} user`)
     } finally {
       setActionLoading(null)
     }

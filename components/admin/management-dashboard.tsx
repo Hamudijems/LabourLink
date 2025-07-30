@@ -19,47 +19,68 @@ import {
   MapPin,
   RefreshCw,
   Activity,
+  GraduationCap,
+  BookOpen
 } from "lucide-react"
-import { db } from "@/lib/firebase"
-import { collection, getDocs } from "firebase/firestore"
+import { subscribeToUsers, subscribeToJobs, subscribeToContracts, FirebaseUser, FirebaseJob, FirebaseContract } from "@/services/firebase-services"
+import { subscribeToStudents, subscribeToK12Students, FirebaseStudent, FirebaseK12Student } from "@/services/student-services"
 
 export default function ManagementDashboard() {
   const router = useRouter()
-  const [users, setUsers] = useState<any[]>([])
-  const [jobs, setJobs] = useState<any[]>([])
-  const [contracts, setContracts] = useState<any[]>([])
+  const [users, setUsers] = useState<FirebaseUser[]>([])
+  const [jobs, setJobs] = useState<FirebaseJob[]>([])
+  const [contracts, setContracts] = useState<FirebaseContract[]>([])
+  const [students, setStudents] = useState<FirebaseStudent[]>([])
+  const [k12Students, setK12Students] = useState<FirebaseK12Student[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTab, setSelectedTab] = useState("overview")
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  const fetchAllData = () => {
+    setLastUpdate(new Date())
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const usersCollection = collection(db, "users")
-        const userSnapshot = await getDocs(usersCollection)
-        const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-        setUsers(userList)
-
-        const jobsCollection = collection(db, "jobs")
-        const jobSnapshot = await getDocs(jobsCollection)
-        const jobList = jobSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-        setJobs(jobList)
-
-        const contractsCollection = collection(db, "contracts")
-        const contractSnapshot = await getDocs(contractsCollection)
-        const contractList = contractSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-        setContracts(contractList)
-      } catch (err) {
-        console.error("Failed to fetch data:", err)
-        // Use fallback data if Firebase fails
-        setUsers([])
-        setJobs([])
-        setContracts([])
-      } finally {
-        setLoading(false)
-      }
+    setMounted(true)
+    setLastUpdate(new Date())
+    setLoading(true)
+    
+    // Subscribe to all Firebase collections
+    const unsubscribeUsers = subscribeToUsers((usersData) => {
+      setUsers(usersData)
+      setLoading(false)
+    })
+    
+    const unsubscribeJobs = subscribeToJobs((jobsData) => {
+      setJobs(jobsData)
+    })
+    
+    const unsubscribeContracts = subscribeToContracts((contractsData) => {
+      setContracts(contractsData)
+    })
+    
+    const unsubscribeStudents = subscribeToStudents((studentsData) => {
+      setStudents(studentsData)
+    })
+    
+    const unsubscribeK12Students = subscribeToK12Students((k12StudentsData) => {
+      setK12Students(k12StudentsData)
+    })
+    
+    // Set up real-time updates every 30 seconds
+    const interval = setInterval(() => {
+      fetchAllData()
+    }, 30000)
+    
+    return () => {
+      unsubscribeUsers()
+      unsubscribeJobs()
+      unsubscribeContracts()
+      unsubscribeStudents()
+      unsubscribeK12Students()
+      clearInterval(interval)
     }
-
-    fetchData()
   }, [])
 
   // Real-time calculations
@@ -154,8 +175,20 @@ export default function ManagementDashboard() {
         </div>
       </div>
 
+      {/* Real-time Status */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          Last updated: {mounted && lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchAllData} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh Data
+        </Button>
+      </div>
+
       {/* Real-time Metrics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -211,6 +244,18 @@ export default function ManagementDashboard() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Pending Approvals</p>
                 <p className="text-xl font-bold">{loading ? "..." : pendingUsers.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-purple-600" />
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total Students</p>
+                <p className="text-xl font-bold">{loading ? "..." : (students.length + k12Students.length)}</p>
               </div>
             </div>
           </CardContent>
@@ -315,6 +360,14 @@ export default function ManagementDashboard() {
                   <span>Completed Contracts</span>
                   <Badge variant="outline">{completedContracts.length}</Badge>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span>College Students</span>
+                  <Badge variant="outline">{students.length}</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>K-12 Students</span>
+                  <Badge variant="outline">{k12Students.length}</Badge>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -415,33 +468,93 @@ export default function ManagementDashboard() {
 
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Statistics</CardTitle>
+                <CardDescription>Real-time user metrics and growth</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{users.length}</div>
+                    <div className="text-sm text-gray-600">Total Users</div>
+                  </div>
+                  <div className="text-center cursor-pointer hover:bg-gray-50 p-4 border rounded-lg" onClick={() => router.push('/workers')}>
+                    <div className="text-2xl font-bold text-green-600">
+                      {users.filter((u) => u.userType === "worker").length}
+                    </div>
+                    <div className="text-sm text-gray-600">Workers</div>
+                  </div>
+                  <div className="text-center cursor-pointer hover:bg-gray-50 p-4 border rounded-lg" onClick={() => router.push('/employers')}>
+                    <div className="text-2xl font-bold text-purple-600">
+                      {users.filter((u) => u.userType === "employer").length}
+                    </div>
+                    <div className="text-sm text-gray-600">Employers</div>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">{pendingUsers.length}</div>
+                    <div className="text-sm text-gray-600">Pending</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Student Statistics</CardTitle>
+                <CardDescription>Educational platform metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center cursor-pointer hover:bg-gray-50 p-4 border rounded-lg" onClick={() => router.push('/student-registration')}>
+                    <div className="text-2xl font-bold text-indigo-600">{students.length}</div>
+                    <div className="text-sm text-gray-600">College Students</div>
+                  </div>
+                  <div className="text-center cursor-pointer hover:bg-gray-50 p-4 border rounded-lg" onClick={() => router.push('/k12-registration')}>
+                    <div className="text-2xl font-bold text-pink-600">{k12Students.length}</div>
+                    <div className="text-sm text-gray-600">K-12 Students</div>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {students.filter(s => s.status === 'active').length + k12Students.filter(s => s.status === 'enrolled').length}
+                    </div>
+                    <div className="text-sm text-gray-600">Active Students</div>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {students.filter(s => s.status === 'graduated').length + k12Students.filter(s => s.status === 'graduated').length}
+                    </div>
+                    <div className="text-sm text-gray-600">Graduated</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
           <Card>
             <CardHeader>
-              <CardTitle>User Statistics</CardTitle>
-              <CardDescription>Real-time user metrics and growth</CardDescription>
+              <CardTitle>Recent Student Registrations</CardTitle>
+              <CardDescription>Latest student enrollments</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{users.length}</div>
-                  <div className="text-sm text-gray-600">Total Users</div>
-                </div>
-                <div className="text-center cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => router.push('/workers')}>
-                  <div className="text-2xl font-bold text-green-600">
-                    {users.filter((u) => u.userType === "worker").length}
+              <div className="space-y-3">
+                {[...students.slice(-3), ...k12Students.slice(-3)].map((student, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{student.firstName} {student.lastName}</h4>
+                      <p className="text-sm text-gray-600">
+                        {student.institution || student.school} {student.grade && `- Grade ${student.grade}`}
+                      </p>
+                    </div>
+                    <Badge variant={student.status === 'active' || student.status === 'enrolled' ? 'default' : 'secondary'}>
+                      {student.status}
+                    </Badge>
                   </div>
-                  <div className="text-sm text-gray-600">Workers</div>
-                </div>
-                <div className="text-center cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => router.push('/employers')}>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {users.filter((u) => u.userType === "employer").length}
-                  </div>
-                  <div className="text-sm text-gray-600">Employers</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{pendingUsers.length}</div>
-                  <div className="text-sm text-gray-600">Pending</div>
-                </div>
+                ))}
+                {students.length === 0 && k12Students.length === 0 && (
+                  <p className="text-center text-gray-500 py-8">No students registered yet</p>
+                )}
               </div>
             </CardContent>
           </Card>

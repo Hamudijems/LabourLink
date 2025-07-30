@@ -13,7 +13,7 @@ import {
   writeBatch,
   increment,
 } from "firebase/firestore"
-import { getFirebaseServices } from "../lib/firebase"
+import { db } from "../lib/firebase"
 
 // Collections
 export const COLLECTIONS = {
@@ -390,11 +390,10 @@ const safeFirebaseOperation = async (
   operationName: string,
 ): Promise<any> => {
   try {
-    const { db, ready } = await getFirebaseServices()
+    const { db } = await getFirebaseServices()
 
-    if (!ready || !db) {
-      console.warn(`⚠️ Firebase not ready for ${operationName}, using fallback data`)
-      return fallback
+    if (!db) {
+      throw new Error("Database not available")
     }
 
     const result = await operation()
@@ -402,6 +401,10 @@ const safeFirebaseOperation = async (
     return result
   } catch (error) {
     console.error(`❌ Firebase ${operationName} failed:`, error)
+    // For write operations, throw error instead of using fallback
+    if (operationName === 'addUser' || operationName === 'updateUser') {
+      throw error
+    }
     console.warn(`⚠️ Using fallback data for ${operationName}`)
     return fallback
   }
@@ -411,29 +414,41 @@ const safeFirebaseOperation = async (
 export const addUser = async (
   userData: Omit<FirebaseUser, "id" | "registrationDate" | "lastActive" | "status">,
 ): Promise<string> => {
-  return safeFirebaseOperation(
-    async () => {
-      const { db } = await getFirebaseServices()
-      if (!db) throw new Error("Database not available")
+  try {
+    if (!db) throw new Error("Database not available")
 
-      const newUser: Omit<FirebaseUser, "id"> = {
-        ...userData,
-        registrationDate: Timestamp.now(),
-        lastActive: Timestamp.now(),
-        status: "pending",
-        jobsCompleted: userData.userType === "worker" ? 0 : undefined,
-        jobsPosted: userData.userType === "employer" ? 0 : undefined,
-        rating: 0,
-        totalEarnings: userData.userType === "worker" ? "0" : undefined,
+    const newUser: any = {
+      ...userData,
+      registrationDate: Timestamp.now(),
+      lastActive: Timestamp.now(),
+      status: "pending",
+      rating: 0,
+    }
+
+    // Add type-specific fields only if they have values
+    if (userData.userType === "worker") {
+      newUser.jobsCompleted = 0
+      newUser.totalEarnings = "0"
+    } else if (userData.userType === "employer") {
+      newUser.jobsPosted = 0
+    }
+
+    // Remove undefined fields
+    Object.keys(newUser).forEach(key => {
+      if (newUser[key] === undefined) {
+        delete newUser[key]
       }
+    })
 
-      const docRef = await addDoc(collection(db, COLLECTIONS.USERS), newUser)
-      await updateSystemMetrics()
-      return docRef.id
-    },
-    `mock-user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    "addUser",
-  )
+    console.log('Adding user to Firebase:', newUser)
+    const docRef = await addDoc(collection(db, COLLECTIONS.USERS), newUser)
+    console.log('User added successfully with ID:', docRef.id)
+    
+    return docRef.id
+  } catch (error) {
+    console.error('Firebase addUser error:', error)
+    throw new Error(`Failed to register user: ${error.message}`)
+  }
 }
 
 export const updateUser = async (userId: string, updates: Partial<FirebaseUser>): Promise<void> => {
@@ -473,10 +488,8 @@ export const subscribeToUsers = (callback: (users: FirebaseUser[]) => void): (()
 
   const setupSubscription = async () => {
     try {
-      const { db, ready } = await getFirebaseServices()
-
-      if (!ready || !db) {
-        console.warn("⚠️ Firebase not ready for subscribeToUsers, using mock data")
+      if (!db) {
+        console.error("❌ Firebase database not available")
         setTimeout(() => callback(getMockUsers()), 100)
         return
       }
@@ -487,9 +500,17 @@ export const subscribeToUsers = (callback: (users: FirebaseUser[]) => void): (()
         (querySnapshot) => {
           const users: FirebaseUser[] = []
           querySnapshot.forEach((doc) => {
-            users.push({ id: doc.id, ...doc.data() } as FirebaseUser)
+            const userData = doc.data() as any
+            // Convert Timestamp objects to strings
+            const user: FirebaseUser = {
+              id: doc.id,
+              ...userData,
+              registrationDate: userData.registrationDate?.toDate?.() ? userData.registrationDate.toDate().toISOString() : userData.registrationDate,
+              lastActive: userData.lastActive?.toDate?.() ? userData.lastActive.toDate().toISOString() : userData.lastActive
+            }
+            users.push(user)
           })
-          console.log(`✅ Users subscription updated: ${users.length} users`)
+          console.log(`✅ Users subscription updated: ${users.length} users from Firebase`)
           callback(users)
         },
         (error) => {
@@ -517,9 +538,7 @@ export const subscribeToPendingUsers = (callback: (users: FirebaseUser[]) => voi
 
   const setupSubscription = async () => {
     try {
-      const { db, ready } = await getFirebaseServices()
-
-      if (!ready || !db) {
+      if (!db) {
         console.warn("⚠️ Firebase not ready for subscribeToPendingUsers, using mock data")
         const mockPending = getMockUsers().filter((u) => u.status === "pending")
         setTimeout(() => callback(mockPending), 100)
@@ -537,7 +556,14 @@ export const subscribeToPendingUsers = (callback: (users: FirebaseUser[]) => voi
         (querySnapshot) => {
           const users: FirebaseUser[] = []
           querySnapshot.forEach((doc) => {
-            users.push({ id: doc.id, ...doc.data() } as FirebaseUser)
+            const userData = doc.data() as any
+            const user: FirebaseUser = {
+              id: doc.id,
+              ...userData,
+              registrationDate: userData.registrationDate?.toDate?.() ? userData.registrationDate.toDate().toISOString() : userData.registrationDate,
+              lastActive: userData.lastActive?.toDate?.() ? userData.lastActive.toDate().toISOString() : userData.lastActive
+            }
+            users.push(user)
           })
           console.log(`✅ Pending users subscription updated: ${users.length} pending`)
           callback(users)

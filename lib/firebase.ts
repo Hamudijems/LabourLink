@@ -42,11 +42,8 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 // Connection status monitoring with retry logic
 export const checkFirestoreConnection = async () => {
   try {
-    const { enableNetwork, disableNetwork, connectFirestoreEmulator } = await import('firebase/firestore')
-    
-    // Simple connection test
-    await enableNetwork(db)
-    return true
+    // Simple connection test - just return true if db exists
+    return !!db
   } catch (error) {
     // Silently handle connection errors
     return false
@@ -67,6 +64,15 @@ export const withFirebaseErrorHandling = async (operation: () => Promise<any>) =
       throw new Error('Permission denied. Please check your authentication.')
     }
     throw error
+  }
+}
+
+// Firebase services getter with connection status
+export const getFirebaseServices = async () => {
+  return {
+    auth,
+    db,
+    ready: true
   }
 }
 

@@ -6,60 +6,39 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Briefcase, Phone, Mail, Building, CheckCircle, Search } from "lucide-react"
+import { subscribeToUsers, updateUser, FirebaseUser } from "@/services/firebase-services"
 
 export default function EmployersPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [employers, setEmployers] = useState([
-    {
-      id: "1",
-      name: "Sarah Mohammed",
-      email: "sarah@buildcorp.et",
-      phone: "+251933333333",
-      status: "verified",
-      fin: "5432109876543210",
-      fan: "9876543210987654",
-      isFaydaVerified: true,
-      companyName: "BuildCorp Ethiopia",
-      businessType: "Construction",
-      registrationDate: "2024-01-15",
-      jobsPosted: 3
-    },
-    {
-      id: "2",
-      name: "Daniel Tesfaye",
-      email: "daniel@services.et",
-      phone: "+251944444444",
-      status: "pending",
-      fin: "1357924680135792",
-      fan: "8642097531864209",
-      isFaydaVerified: true,
-      companyName: "Service Solutions Ltd",
-      businessType: "Services",
-      registrationDate: "2024-01-20",
-      jobsPosted: 1
-    }
-  ])
+  const [employers, setEmployers] = useState<FirebaseUser[]>([])
 
   useEffect(() => {
-    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-    const registeredEmployers = registeredUsers.filter((user: any) => user.userType === 'employer')
-    setEmployers(prev => [...prev, ...registeredEmployers])
+    const unsubscribe = subscribeToUsers((users) => {
+      const employerUsers = users.filter(user => user.userType === 'employer')
+      setEmployers(employerUsers)
+    })
+
+    return () => unsubscribe()
   }, [])
 
-  const filteredEmployers = employers.filter(employer => 
-    employer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employer.phone.includes(searchTerm) ||
-    employer.fin.includes(searchTerm) ||
-    employer.fan.includes(searchTerm) ||
-    employer.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employer.businessType.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredEmployers = employers.filter(employer => {
+    const fullName = `${employer.firstName} ${employer.lastName}`.toLowerCase()
+    const companyName = employer.companyName ? employer.companyName.toLowerCase() : ''
+    const businessType = employer.businessType ? employer.businessType.toLowerCase() : ''
+    return fullName.includes(searchTerm.toLowerCase()) ||
+           employer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           employer.phone.includes(searchTerm) ||
+           employer.fydaId.includes(searchTerm) ||
+           companyName.includes(searchTerm.toLowerCase()) ||
+           businessType.includes(searchTerm.toLowerCase())
+  })
 
-  const handleStatusUpdate = (employerId: string, newStatus: string) => {
-    setEmployers(prev => prev.map(employer => 
-      employer.id === employerId ? { ...employer, status: newStatus } : employer
-    ))
+  const handleStatusUpdate = async (employerId: string, newStatus: string) => {
+    try {
+      await updateUser(employerId, { status: newStatus as any })
+    } catch (error) {
+      console.error('Failed to update employer status:', error)
+    }
   }
 
   return (
@@ -90,12 +69,12 @@ export default function EmployersPage() {
           <Card key={employer.id}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {employer.name}
-                {employer.isFaydaVerified && <CheckCircle className="h-5 w-5 text-green-600" />}
+                {employer.firstName} {employer.lastName}
+                <CheckCircle className="h-5 w-5 text-green-600" />
               </CardTitle>
               <div className="flex items-center gap-1 text-blue-600">
                 <Building className="h-4 w-4" />
-                <span>{employer.companyName}</span>
+                <span>{employer.companyName || 'Company not specified'}</span>
               </div>
             </CardHeader>
             <CardContent>
@@ -116,14 +95,23 @@ export default function EmployersPage() {
                 </div>
                 {employer.status === 'pending' && (
                   <div className="flex gap-2 mt-2">
-                    <Button size="sm" onClick={() => handleStatusUpdate(employer.id, 'verified')} className="bg-green-600 hover:bg-green-700">
+                    <Button size="sm" onClick={() => handleStatusUpdate(employer.id!, 'verified')} className="bg-green-600 hover:bg-green-700">
                       Approve
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(employer.id, 'rejected')}>
+                    <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(employer.id!, 'rejected')}>
                       Reject
                     </Button>
                   </div>
                 )}
+                <div className="text-sm text-gray-600">
+                  FYDA ID: {employer.fydaId}
+                </div>
+                <div className="text-sm text-gray-600">
+                  Business: {employer.businessType || 'Not specified'}
+                </div>
+                <div className="text-sm text-gray-600">
+                  Region: {employer.region} | City: {employer.city}
+                </div>
               </div>
             </CardContent>
           </Card>

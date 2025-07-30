@@ -10,9 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { db } from "@/lib/firebase"
-import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore"
 import { verifyFaydaID } from "@/lib/fayda-api"
+import { subscribeToStudents, updateStudent, FirebaseStudent } from "@/services/student-services"
+import { addDoc, collection } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import { 
   GraduationCap, 
   Plus, 
@@ -42,18 +43,9 @@ interface Graduate {
   registrationDate: string
 }
 
-interface Student {
-  id: string
-  firstName: string
-  lastName: string
-  institution: string
-  program: string
-  status: string
-}
-
 export default function StudentGraduation() {
   const [graduates, setGraduates] = useState<Graduate[]>([])
-  const [students, setStudents] = useState<Student[]>([])
+  const [students, setStudents] = useState<FirebaseStudent[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -77,20 +69,27 @@ export default function StudentGraduation() {
   })
 
   useEffect(() => {
-    fetchData()
+    // Subscribe to students
+    const unsubscribeStudents = subscribeToStudents((studentsData) => {
+      setStudents(studentsData.filter(s => s.status === "active"))
+    })
+
+    // Subscribe to graduates
+    fetchGraduates()
+
+    return () => unsubscribeStudents()
   }, [])
 
-  const fetchData = async () => {
+  const fetchGraduates = async () => {
     try {
-      // Fetch graduates from localStorage
-      const registeredGraduates = JSON.parse(localStorage.getItem('registeredGraduates') || '[]')
-      setGraduates(registeredGraduates)
-
-      // Fetch active students from localStorage
-      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
-      setStudents(registeredStudents.filter((s: Student) => s.status === "active"))
+      if (db) {
+        const { getDocs } = await import('firebase/firestore')
+        const snapshot = await getDocs(collection(db, 'graduates'))
+        const graduatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Graduate[]
+        setGraduates(graduatesData)
+      }
     } catch (err) {
-      console.error("Error fetching data:", err)
+      console.error("Error fetching graduates:", err)
     }
   }
 
@@ -127,13 +126,7 @@ export default function StudentGraduation() {
 
   const graduateStudent = async (studentId: string) => {
     try {
-      // Update student status to graduated in localStorage
-      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
-      const updatedStudents = registeredStudents.map((student: any) => 
-        student.id === studentId ? { ...student, status: "graduated" } : student
-      )
-      localStorage.setItem('registeredStudents', JSON.stringify(updatedStudents))
-      await fetchData()
+      await updateStudent(studentId, { status: "graduated" })
       setSuccess("Student marked as graduated")
     } catch (err) {
       setError("Failed to update student status")
@@ -152,9 +145,8 @@ export default function StudentGraduation() {
     setError(null)
 
     try {
-      // Check if student exists in registered students
-      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
-      const existingStudent = registeredStudents.find((student: any) => 
+      // Check if student exists in Firebase
+      const existingStudent = students.find(student => 
         student.fin === formData.fin && student.fan === formData.fan
       )
 
@@ -173,23 +165,19 @@ export default function StudentGraduation() {
       const graduateData = {
         ...formData,
         faydaVerified: true,
-        registrationDate: new Date().toISOString().split('T')[0]
+        registrationDate: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString()
       }
 
-      // Store in graduates localStorage
-      const existingGraduates = JSON.parse(localStorage.getItem('registeredGraduates') || '[]')
-      const newGraduate = {
-        ...graduateData,
-        id: Date.now().toString()
+      // Store graduate in Firebase
+      if (db) {
+        await addDoc(collection(db, 'graduates'), graduateData)
       }
-      existingGraduates.push(newGraduate)
-      localStorage.setItem('registeredGraduates', JSON.stringify(existingGraduates))
       
       // Update student status to graduated
-      const updatedStudents = registeredStudents.map((student: any) => 
-        student.id === existingStudent.id ? { ...student, status: "graduated" } : student
-      )
-      localStorage.setItem('registeredStudents', JSON.stringify(updatedStudents))
+      if (existingStudent.id) {
+        await updateStudent(existingStudent.id, { status: "graduated" })
+      }
       
       setSuccess(`Graduate registered successfully! Student ${existingStudent.firstName} ${existingStudent.lastName} has been marked as graduated.`)
       setFormData({
@@ -206,9 +194,10 @@ export default function StudentGraduation() {
         honors: ""
       })
       setFaydaVerified(false)
-      await fetchData()
+      await fetchGraduates()
     } catch (err) {
-      setError("Failed to register graduate")
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      setError(`Failed to register graduate: ${errorMessage}`)
       console.error("Registration error:", err)
     } finally {
       setLoading(false)

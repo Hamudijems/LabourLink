@@ -60,13 +60,16 @@ export default function LandingPage() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button size="lg" asChild className="bg-green-600 hover:bg-green-700 text-lg px-8 py-6">
-                    <Link href="/signup">
-                      Start Your Journey
+                    <Link href="/signup?type=worker">
+                      Join as Worker
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
-                  <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                    Watch Demo
+                  <Button size="lg" asChild className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-6">
+                    <Link href="/signup?type=employer">
+                      Join as Employer
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
                   </Button>
                 </div>
                 <div className="flex items-center space-x-8 pt-4">
@@ -201,10 +204,10 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-6">
-                  <Link href="/signup">Join as Worker</Link>
+                  <Link href="/signup?type=worker">Join as Worker</Link>
                 </Button>
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-green-600 text-lg px-8 py-6">
-                  <Link href="/signup">Join as Employer</Link>
+                  <Link href="/signup?type=employer">Join as Employer</Link>
                 </Button>
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-green-600 text-lg px-8 py-6">
                   <Link href="/property-registration">Register Properties</Link>

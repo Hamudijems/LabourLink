@@ -6,55 +6,37 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Users, Phone, Mail, CheckCircle, Search } from "lucide-react"
+import { subscribeToUsers, updateUser, FirebaseUser } from "@/services/firebase-services"
 
 export default function WorkersPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [workers, setWorkers] = useState([
-    {
-      id: "1",
-      name: "Ahmed Hassan",
-      email: "ahmed.hassan@example.com",
-      phone: "+251911111111",
-      status: "verified",
-      fin: "6140798523917519",
-      fan: "3126894653473958",
-      isFaydaVerified: true,
-      skills: ["Construction", "Carpentry"],
-      registrationDate: "2024-01-15"
-    },
-    {
-      id: "2",
-      name: "Fatima Ali",
-      email: "fatima.ali@example.com",
-      phone: "+251922222222",
-      status: "pending",
-      fin: "6230247319356120",
-      fan: "4567891234567890",
-      isFaydaVerified: true,
-      skills: ["Cleaning", "Housekeeping"],
-      registrationDate: "2024-01-20"
-    }
-  ])
+  const [workers, setWorkers] = useState<FirebaseUser[]>([])
 
   useEffect(() => {
-    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-    const registeredWorkers = registeredUsers.filter((user: any) => user.userType === 'worker')
-    setWorkers(prev => [...prev, ...registeredWorkers])
+    const unsubscribe = subscribeToUsers((users) => {
+      const workerUsers = users.filter(user => user.userType === 'worker')
+      setWorkers(workerUsers)
+    })
+
+    return () => unsubscribe()
   }, [])
 
-  const filteredWorkers = workers.filter(worker => 
-    worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    worker.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    worker.phone.includes(searchTerm) ||
-    worker.fin.includes(searchTerm) ||
-    worker.fan.includes(searchTerm) ||
-    (Array.isArray(worker.skills) ? worker.skills.join(' ') : worker.skills).toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredWorkers = workers.filter(worker => {
+    const fullName = `${worker.firstName} ${worker.lastName}`.toLowerCase()
+    const skills = worker.skills ? worker.skills.join(' ').toLowerCase() : ''
+    return fullName.includes(searchTerm.toLowerCase()) ||
+           worker.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           worker.phone.includes(searchTerm) ||
+           worker.fydaId.includes(searchTerm) ||
+           skills.includes(searchTerm.toLowerCase())
+  })
 
-  const handleStatusUpdate = (workerId: string, newStatus: string) => {
-    setWorkers(prev => prev.map(worker => 
-      worker.id === workerId ? { ...worker, status: newStatus } : worker
-    ))
+  const handleStatusUpdate = async (workerId: string, newStatus: string) => {
+    try {
+      await updateUser(workerId, { status: newStatus as any })
+    } catch (error) {
+      console.error('Failed to update worker status:', error)
+    }
   }
 
   return (
@@ -85,8 +67,8 @@ export default function WorkersPage() {
           <Card key={worker.id}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {worker.name}
-                {worker.isFaydaVerified && <CheckCircle className="h-5 w-5 text-green-600" />}
+                {worker.firstName} {worker.lastName}
+                <CheckCircle className="h-5 w-5 text-green-600" />
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -103,20 +85,23 @@ export default function WorkersPage() {
                   <Badge className={worker.status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                     {worker.status}
                   </Badge>
-                  <span>Skills: {Array.isArray(worker.skills) ? worker.skills.join(', ') : worker.skills}</span>
+                  <span>Skills: {worker.skills ? worker.skills.join(', ') : 'None listed'}</span>
                 </div>
                 {worker.status === 'pending' && (
                   <div className="flex gap-2 mt-2">
-                    <Button size="sm" onClick={() => handleStatusUpdate(worker.id, 'verified')} className="bg-green-600 hover:bg-green-700">
+                    <Button size="sm" onClick={() => handleStatusUpdate(worker.id!, 'verified')} className="bg-green-600 hover:bg-green-700">
                       Approve
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(worker.id, 'rejected')}>
+                    <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(worker.id!, 'rejected')}>
                       Reject
                     </Button>
                   </div>
                 )}
                 <div className="text-sm text-gray-600">
-                  FIN: {worker.fin} | FAN: {worker.fan}
+                  FYDA ID: {worker.fydaId}
+                </div>
+                <div className="text-sm text-gray-600">
+                  Region: {worker.region} | City: {worker.city}
                 </div>
               </div>
             </CardContent>

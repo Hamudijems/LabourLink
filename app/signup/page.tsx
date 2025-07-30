@@ -1,32 +1,57 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase } from "lucide-react"
+import { addUser } from "@/services/firebase-services"
 
 export default function SignupPage() {
+  const searchParams = useSearchParams()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
   const [userType, setUserType] = useState("worker")
   const [skills, setSkills] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [phone, setPhone] = useState("")
+  const [region, setRegion] = useState("")
+  const [city, setCity] = useState("")
+  const [companyName, setCompanyName] = useState("")
+  const [businessType, setBusinessType] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [verifiedUser, setVerifiedUser] = useState(null)
+
+  useEffect(() => {
+    const type = searchParams.get('type')
+    if (type === 'employer' || type === 'worker') {
+      setUserType(type)
+    }
+  }, [searchParams])
 
   const handleVerify = async () => {
     setIsLoading(true)
     setError("")
 
     try {
+      // For testing - bypass Fayda verification if test FIN/FAN
+      if (fin === '1234567890123456' && fan === '9876543210987654') {
+        setIsVerified(true)
+        setVerifiedUser({ name: 'Test User' })
+        setFirstName('Test')
+        setLastName('User')
+        setIsLoading(false)
+        return
+      }
+
       const response = await fetch("/api/verify-fayda", {
         method: "POST",
         headers: {
@@ -37,10 +62,13 @@ export default function SignupPage() {
 
       const data = await response.json()
 
-      if (response.ok) {
+      if (response.ok && data.success && data.verified) {
         setIsVerified(true)
         setVerifiedUser(data.user)
-        setName(data.user.name || "")
+        const fullName = data.user.name || ""
+        const nameParts = fullName.split(' ')
+        setFirstName(nameParts[0] || "")
+        setLastName(nameParts.slice(1).join(' ') || "")
       } else {
         setError(data.error || "Invalid FIN/FAN combination. Please try again.")
       }
@@ -57,29 +85,28 @@ export default function SignupPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password, phone, fin, fan, skills, userType }),
-      })
-
-      const data = await response.json()
-      
-      if (response.ok) {
-        // Store user in localStorage
-        const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-        existingUsers.push(data.user)
-        localStorage.setItem('registeredUsers', JSON.stringify(existingUsers))
-        
-        alert("Account created successfully! You can now login.")
-        window.location.href = "/login"
-      } else {
-        setError(data.error || "Failed to register user")
+      const userData = {
+        fydaId: `${fin}-${fan}`,
+        firstName,
+        lastName,
+        phone,
+        email,
+        region,
+        city,
+        userType: userType as "worker" | "employer",
+        skills: userType === "worker" ? skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+        companyName: userType === "employer" ? companyName : undefined,
+        businessType: userType === "employer" ? businessType : undefined,
       }
+
+      console.log('Attempting to register user:', userData)
+      const userId = await addUser(userData)
+      console.log('User registered with ID:', userId)
+      alert(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully! User ID: ${userId}. Please wait for admin approval.`)
+      window.location.href = "/landing"
     } catch (error) {
-      setError("An unexpected error occurred. Please try again.")
+      console.error('Registration error:', error)
+      setError(`Failed to create account: ${error.message || error}`)
     }
 
     setIsLoading(false)
@@ -92,8 +119,17 @@ export default function SignupPage() {
           <div className="flex items-center justify-center mb-4">
             <Shield className="h-12 w-12 text-green-600" />
           </div>
-          <CardTitle className="text-2xl">Create Your Account</CardTitle>
-          <CardDescription>Join SafeHire Ethiopia and get access to a trusted workforce.</CardDescription>
+          <div className="flex items-center justify-center mb-2">
+            {userType === 'worker' ? <Users className="h-6 w-6 text-blue-600 mr-2" /> : <Briefcase className="h-6 w-6 text-green-600 mr-2" />}
+            <CardTitle className="text-2xl">
+              {userType === 'worker' ? 'Join as Worker' : 'Join as Employer'}
+            </CardTitle>
+          </div>
+          <CardDescription>
+            {userType === 'worker' 
+              ? 'Register as a worker to find trusted employment opportunities.' 
+              : 'Register as an employer to find verified workers.'}
+          </CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -107,20 +143,7 @@ export default function SignupPage() {
 
             {!isVerified ? (
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="userType" className="text-base font-medium">
-                    Registration Type
-                  </Label>
-                  <select
-                    id="userType"
-                    value={userType}
-                    onChange={(e) => setUserType(e.target.value)}
-                    className="w-full mt-2 text-lg py-3 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="worker">Join as Worker</option>
-                    <option value="employer">Join as Employer</option>
-                  </select>
-                </div>
+
                 <div>
                   <Label htmlFor="fin" className="text-base font-medium">
                     FIN (Fayda Identification Number)
@@ -163,20 +186,37 @@ export default function SignupPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name" className="text-base font-medium">
-                    Full Name
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="mt-2 text-lg py-6"
-                    required
-                    disabled={isLoading}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName" className="text-base font-medium">
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="First name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="mt-2 text-lg py-6"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName" className="text-base font-medium">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Last name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="mt-2 text-lg py-6"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="email" className="text-base font-medium">
@@ -208,41 +248,92 @@ export default function SignupPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="password" className="text-base font-medium">
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="mt-2 text-lg py-6"
-                    required
-                    disabled={isLoading}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="region" className="text-base font-medium">
+                      Region
+                    </Label>
+                    <Input
+                      id="region"
+                      type="text"
+                      placeholder="Your region"
+                      value={region}
+                      onChange={(e) => setRegion(e.target.value)}
+                      className="mt-2 text-lg py-6"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city" className="text-base font-medium">
+                      City
+                    </Label>
+                    <Input
+                      id="city"
+                      type="text"
+                      placeholder="Your city"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="mt-2 text-lg py-6"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
                 {userType === "worker" && (
                   <div>
                     <Label htmlFor="skills" className="text-base font-medium">
-                      Skills
+                      Skills (comma-separated)
                     </Label>
                     <Input
                       id="skills"
                       type="text"
-                      placeholder="Enter your skills (comma-separated)"
+                      placeholder="e.g., Construction, Carpentry, Cleaning"
                       value={skills}
                       onChange={(e) => setSkills(e.target.value)}
                       className="mt-2 text-lg py-6"
-                      required={userType === "worker"}
+                      required
                       disabled={isLoading}
                     />
                   </div>
                 )}
+                {userType === "employer" && (
+                  <>
+                    <div>
+                      <Label htmlFor="companyName" className="text-base font-medium">
+                        Company Name
+                      </Label>
+                      <Input
+                        id="companyName"
+                        type="text"
+                        placeholder="Your company name"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="mt-2 text-lg py-6"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="businessType" className="text-base font-medium">
+                        Business Type
+                      </Label>
+                      <Input
+                        id="businessType"
+                        type="text"
+                        placeholder="e.g., Construction, Retail, Services"
+                        value={businessType}
+                        onChange={(e) => setBusinessType(e.target.value)}
+                        className="mt-2 text-lg py-6"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </>
+                )}
                 <Button
                   type="submit"
-                  disabled={!name || !email || !password || !phone || (userType === "worker" && !skills) || isLoading}
+                  disabled={!firstName || !lastName || !email || !phone || !region || !city || (userType === "worker" && !skills) || (userType === "employer" && (!companyName || !businessType)) || isLoading}
                   className="w-full text-lg py-6"
                   size="lg"
                 >

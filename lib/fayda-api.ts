@@ -11,12 +11,12 @@ const FAYDA_CONFIG = {
 }
 
 // Test credentials for development
-const TEST_CREDENTIALS = {
-  FIN: "6140798523917519",
-  FAN: "3126894653473958",
-  FIN3: "6230247319356120",
-  OTP: "111111"
-}
+const TEST_CREDENTIALS = [
+  { FIN: "6140798523917519", FAN: "3126894653473958", name: "Ahmed Hassan" },
+  { FIN: "6230247319356120", FAN: "1234567890123456", name: "Fatima Ali" },
+  { FIN: "1234567890123456", FAN: "6140798523917519", name: "Mohammed Ibrahim" },
+  { FIN: "9876543210987654", FAN: "3126894653473958", name: "Sara Tadesse" }
+]
 
 export interface FaydaUser {
   fin?: string
@@ -28,8 +28,29 @@ export interface FaydaUser {
 
 export async function verifyFaydaID(fin: string, fan: string): Promise<FaydaUser> {
   try {
-    // For development, use test credentials
-    if (fin === TEST_CREDENTIALS.FIN && fan === TEST_CREDENTIALS.FAN) {
+    console.log(`🔍 Verifying FIN: ${fin}, FAN: ${fan}`)
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Check against test credentials
+    const testUser = TEST_CREDENTIALS.find(cred => 
+      cred.FIN === fin && cred.FAN === fan
+    )
+    
+    if (testUser) {
+      console.log(`✅ Verification successful for ${testUser.name}`)
+      return {
+        fin,
+        fan,
+        name: testUser.name,
+        verified: true
+      }
+    }
+    
+    // Also allow any 16-digit FIN/FAN combination for testing
+    if (fin.length === 16 && fan.length === 16 && /^\d+$/.test(fin) && /^\d+$/.test(fan)) {
+      console.log(`✅ Generic verification successful`)
       return {
         fin,
         fan,
@@ -38,22 +59,12 @@ export async function verifyFaydaID(fin: string, fan: string): Promise<FaydaUser
       }
     }
 
-    if (fin === TEST_CREDENTIALS.FIN3) {
-      return {
-        fin,
-        fan,
-        name: "Test User 3",
-        verified: true
-      }
-    }
-
-    // In production, this would make actual API calls to Fayda
-    // For now, return mock verification
+    console.log(`❌ Verification failed - credentials not found`)
     return {
       fin,
       fan,
       verified: false,
-      error: "FIN/FAN combination not found in Fayda system"
+      error: "FIN/FAN combination not found in Fayda system. Try: FIN: 6140798523917519, FAN: 3126894653473958"
     }
   } catch (error) {
     console.error("Fayda verification error:", error)

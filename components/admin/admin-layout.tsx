@@ -47,10 +47,27 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
-  const adminEmail = "admin@safehire.et"
-  const logout = () => console.log('logout')
+  const { logout, adminEmail, isAuthenticated, loading } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
+
+  // Redirect to login if not authenticated
+  if (!loading && !isAuthenticated) {
+    router.push('/login')
+    return null
+  }
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode)
@@ -90,6 +107,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       description: "Manage registered employers",
       href: "/employers",
     },
+
     {
       id: "student-registration",
       label: "Student Registration",
@@ -211,7 +229,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         </div>
                         <div className="hidden sm:block text-left">
                           <p className="text-sm font-medium">Admin</p>
-                          <p className="text-xs text-green-200">admin@safehire.et</p>
+                          <p className="text-xs text-green-200">{adminEmail}</p>
                         </div>
                       </div>
                     </Button>

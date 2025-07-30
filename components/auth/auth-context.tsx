@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { auth } from "@/lib/firebase"
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth"
 
 interface User {
   email: string
@@ -21,53 +19,45 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Hardcoded admin credentials
+const ADMIN_EMAIL = "hamudijems4@gmail.com"
+const ADMIN_PASSWORD = "ahmed123"
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        setUser({
-          email: firebaseUser.email || "",
-          id: firebaseUser.uid
-        })
-      } else {
-        setUser(null)
-      }
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
+    // Check if user is already logged in from localStorage
+    const savedUser = localStorage.getItem('adminUser')
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
+    }
+    setLoading(false)
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      const firebaseUser = userCredential.user
+    // Check hardcoded credentials
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      const adminUser = {
+        email: ADMIN_EMAIL,
+        id: "admin-001"
+      }
       
-      setUser({
-        email: firebaseUser.email || "",
-        id: firebaseUser.uid
-      })
-      
+      setUser(adminUser)
+      localStorage.setItem('adminUser', JSON.stringify(adminUser))
       router.push("/dashboard")
       return true
-    } catch (error) {
-      console.error("Failed to log in", error)
-      return false
     }
+    
+    return false
   }
 
-  const logout = async () => {
-    try {
-      await signOut(auth)
-      setUser(null)
-      router.push("/landing")
-    } catch (error) {
-      console.error("Failed to log out", error)
-    }
+  const logout = () => {
+    setUser(null)
+    localStorage.removeItem('adminUser')
+    router.push("/landing")
   }
 
   const isAuthenticated = !!user
