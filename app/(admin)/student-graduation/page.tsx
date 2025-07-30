@@ -82,23 +82,13 @@ export default function StudentGraduation() {
 
   const fetchData = async () => {
     try {
-      // Fetch graduates
-      const graduatesCollection = collection(db, "graduates")
-      const graduateSnapshot = await getDocs(graduatesCollection)
-      const graduateList = graduatesSnapshot.docs.map((doc) => ({ 
-        id: doc.id, 
-        ...doc.data() 
-      })) as Graduate[]
-      setGraduates(graduateList)
+      // Fetch graduates from localStorage
+      const registeredGraduates = JSON.parse(localStorage.getItem('registeredGraduates') || '[]')
+      setGraduates(registeredGraduates)
 
-      // Fetch active students
-      const studentsCollection = collection(db, "students")
-      const studentSnapshot = await getDocs(studentsCollection)
-      const studentList = studentSnapshot.docs.map((doc) => ({ 
-        id: doc.id, 
-        ...doc.data() 
-      })) as Student[]
-      setStudents(studentList.filter(s => s.status === "active"))
+      // Fetch active students from localStorage
+      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
+      setStudents(registeredStudents.filter((s: Student) => s.status === "active"))
     } catch (err) {
       console.error("Error fetching data:", err)
     }
@@ -137,8 +127,12 @@ export default function StudentGraduation() {
 
   const graduateStudent = async (studentId: string) => {
     try {
-      // Update student status to graduated
-      await updateDoc(doc(db, "students", studentId), { status: "graduated" })
+      // Update student status to graduated in localStorage
+      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
+      const updatedStudents = registeredStudents.map((student: any) => 
+        student.id === studentId ? { ...student, status: "graduated" } : student
+      )
+      localStorage.setItem('registeredStudents', JSON.stringify(updatedStudents))
       await fetchData()
       setSuccess("Student marked as graduated")
     } catch (err) {
@@ -164,7 +158,15 @@ export default function StudentGraduation() {
         registrationDate: new Date().toISOString().split('T')[0]
       }
 
-      await addDoc(collection(db, "graduates"), graduateData)
+      // Store in localStorage
+      const existingGraduates = JSON.parse(localStorage.getItem('registeredGraduates') || '[]')
+      const newGraduate = {
+        ...graduateData,
+        id: Date.now().toString()
+      }
+      existingGraduates.push(newGraduate)
+      localStorage.setItem('registeredGraduates', JSON.stringify(existingGraduates))
+      
       setSuccess("Graduate registered successfully")
       setFormData({
         fin: "",

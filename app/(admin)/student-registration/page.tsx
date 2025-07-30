@@ -66,13 +66,8 @@ export default function StudentRegistration() {
 
   const fetchStudents = async () => {
     try {
-      const studentsCollection = collection(db, "students")
-      const studentSnapshot = await getDocs(studentsCollection)
-      const studentList = studentSnapshot.docs.map((doc) => ({ 
-        id: doc.id, 
-        ...doc.data() 
-      })) as Student[]
-      setStudents(studentList)
+      const registeredStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
+      setStudents(registeredStudents)
     } catch (err) {
       console.error("Error fetching students:", err)
     }
@@ -128,7 +123,15 @@ export default function StudentRegistration() {
         registrationDate: new Date().toISOString().split('T')[0]
       }
 
-      await addDoc(collection(db, "students"), studentData)
+      // Store in localStorage
+      const existingStudents = JSON.parse(localStorage.getItem('registeredStudents') || '[]')
+      const newStudent = {
+        ...studentData,
+        id: Date.now().toString()
+      }
+      existingStudents.push(newStudent)
+      localStorage.setItem('registeredStudents', JSON.stringify(existingStudents))
+      
       setSuccess("Student registered successfully")
       setFormData({
         fin: "",
