@@ -199,3 +199,10 @@ The platform is ready for deployment with:
 - Real-time updates and monitoring
 
 The SafeHire Ethiopia platform is now fully operational and ready for deployment!
+
+
+## 🚀 Running the Project with Docker
+
+```bash
+docker build -t labourlink .
+docker run -p 3000:3000 labourlink
