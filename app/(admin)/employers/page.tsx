@@ -22,19 +22,19 @@ export default function EmployersPage() {
   }, [])
 
   const fetchEmployers = async () => {
+    setLoading(true)
     try {
-      await withFirebaseErrorHandling(async () => {
-        const usersCollection = collection(db, "users")
-        const employersQuery = query(usersCollection, where("userType", "==", "employer"))
-        const snapshot = await getDocs(employersQuery)
-        const employersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        setEmployers(employersList)
-      })
+      const usersCollection = collection(db, "users")
+      const employersQuery = query(usersCollection, where("userType", "==", "employer"))
+      const snapshot = await getDocs(employersQuery)
+      const employersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      setEmployers(employersList)
+      setError(null)
     } catch (err: any) {
       setError(err.message || "Failed to fetch employers data")
-    } finally {
-      setLoading(false)
+      setEmployers([])
     }
+    setLoading(false)
   }
 
   const handleStatusUpdate = async (employerId: string, newStatus: string) => {
@@ -81,10 +81,15 @@ export default function EmployersPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Employers Management</h1>
+          <p className="text-gray-600 dark:text-gray-300">Manage registered employers and their companies</p>
+        </div>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
             <p>Loading employers...</p>
+            <p className="text-sm text-gray-500 mt-2">This may take a few seconds</p>
           </div>
         </div>
       </div>
@@ -99,10 +104,23 @@ export default function EmployersPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Employers Management</h1>
             <p className="text-gray-600 dark:text-gray-300">Manage registered employers and their companies</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Briefcase className="h-5 w-5 text-blue-600" />
-            <span className="text-2xl font-bold">{employers.length}</span>
-            <span className="text-gray-600">Total Employers</span>
+          <div className="flex items-center space-x-4">
+            <Button 
+              onClick={() => {
+                setLoading(true)
+                setError(null)
+                fetchEmployers()
+              }}
+              variant="outline"
+              size="sm"
+            >
+              Refresh
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Briefcase className="h-5 w-5 text-blue-600" />
+              <span className="text-2xl font-bold">{employers.length}</span>
+              <span className="text-gray-600">Total Employers</span>
+            </div>
           </div>
         </div>
 

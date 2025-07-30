@@ -18,20 +18,44 @@ export default function WorkersPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchWorkers()
+    let isMounted = true
+    
+    const timeoutId = setTimeout(() => {
+      if (isMounted && loading) {
+        setLoading(false)
+        setError('Request timed out. Please refresh the page.')
+        setWorkers([])
+      }
+    }, 10000)
+
+    const loadWorkers = async () => {
+      if (isMounted) {
+        await fetchWorkers()
+      }
+    }
+
+    loadWorkers()
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeoutId)
+    }
   }, [])
 
   const fetchWorkers = async () => {
     try {
-      await withFirebaseErrorHandling(async () => {
-        const usersCollection = collection(db, "users")
-        const workersQuery = query(usersCollection, where("userType", "==", "worker"))
-        const snapshot = await getDocs(workersQuery)
-        const workersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        setWorkers(workersList)
-      })
+      console.log('Fetching workers...')
+      const usersCollection = collection(db, "users")
+      const workersQuery = query(usersCollection, where("userType", "==", "worker"))
+      const snapshot = await getDocs(workersQuery)
+      const workersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      console.log('Workers fetched:', workersList.length)
+      setWorkers(workersList)
     } catch (err: any) {
+      console.error('Error fetching workers:', err)
       setError(err.message || "Failed to fetch workers data")
+      // Set empty array as fallback
+      setWorkers([])
     } finally {
       setLoading(false)
     }
@@ -81,10 +105,15 @@ export default function WorkersPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Workers Management</h1>
+          <p className="text-gray-600 dark:text-gray-300">Manage registered workers and their profiles</p>
+        </div>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
             <p>Loading workers...</p>
+            <p className="text-sm text-gray-500 mt-2">This may take a few seconds</p>
           </div>
         </div>
       </div>
@@ -99,10 +128,23 @@ export default function WorkersPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Workers Management</h1>
             <p className="text-gray-600 dark:text-gray-300">Manage registered workers and their profiles</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Users className="h-5 w-5 text-green-600" />
-            <span className="text-2xl font-bold">{workers.length}</span>
-            <span className="text-gray-600">Total Workers</span>
+          <div className="flex items-center space-x-4">
+            <Button 
+              onClick={() => {
+                setLoading(true)
+                setError(null)
+                fetchWorkers()
+              }}
+              variant="outline"
+              size="sm"
+            >
+              Refresh
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-green-600" />
+              <span className="text-2xl font-bold">{workers.length}</span>
+              <span className="text-gray-600">Total Workers</span>
+            </div>
           </div>
         </div>
 

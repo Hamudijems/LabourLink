@@ -1,21 +1,19 @@
 import { initializeApp } from "firebase/app"
-import { getAnalytics } from "firebase/analytics"
 import { getAuth } from "firebase/auth"
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore"
+import { getFirestore } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: "AIzaSyCxhuyDpDVrWGk4hB9hEATRg3KwU9V4Yaw",
   authDomain: "newompitation-project.firebaseapp.com",
   projectId: "newompitation-project",
-  storageBucket: "newompitation-project.appspot.com",
+  storageBucket: "newompitation-project.firebasestorage.app",
   messagingSenderId: "827431642092",
-  appId: "1:827431642092:web:7b978f7fa1c70b556656c9",
-  measurementId: "G-8482ZXH3GC"
+  appId: "1:827431642092:web:4c19b1ac64a89cf76656c9",
+  measurementId: "G-6XY76L7G4B"
 }
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
-const analytics = getAnalytics(app)
 const auth = getAuth(app)
 const db = getFirestore(app)
 
@@ -51,15 +49,13 @@ export const withFirebaseErrorHandling = async (operation: () => Promise<any>) =
   try {
     return await operation()
   } catch (error: any) {
+    console.error('Firebase operation error:', error)
     // Handle specific Firebase errors
     if (error.code === 'unavailable' || error.code === 'deadline-exceeded') {
-      // Network issues - retry once
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        return await operation()
-      } catch (retryError) {
-        throw new Error('Network connection issue. Please check your internet connection.')
-      }
+      throw new Error('Network connection issue. Please check your internet connection.')
+    }
+    if (error.code === 'permission-denied') {
+      throw new Error('Permission denied. Please check your authentication.')
     }
     throw error
   }
