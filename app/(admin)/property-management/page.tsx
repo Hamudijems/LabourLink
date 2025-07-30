@@ -71,32 +71,29 @@ export default function PropertyManagement() {
     setLoading(true)
     setError(null)
     try {
-      const propertiesCollection = collection(db, "properties")
-      const propertySnapshot = await getDocs(propertiesCollection)
-      const propertyList = propertySnapshot.docs.map((doc) => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          fin: data.fin || "",
-          fan: data.fan || "",
-          firstName: data.firstName || "",
-          lastName: data.lastName || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          address: data.address || "",
-          properties: data.properties || [],
-          totalValue: data.totalValue || 0,
-          registrationDate: data.registrationDate || "",
-          faydaVerified: data.faydaVerified || false,
-          emergencyContact: data.emergencyContact || { name: "", phone: "", relation: "" }
-        }
-      }) as PropertyOwner[]
+      // Load from localStorage
+      const registeredProperties = JSON.parse(localStorage.getItem('registeredProperties') || '[]')
+      const propertyList = registeredProperties.map((data: any) => ({
+        id: data.id,
+        fin: data.fin || "",
+        fan: data.fan || "",
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        properties: data.properties || [],
+        totalValue: data.totalValue || 0,
+        registrationDate: data.registrationDate || "",
+        faydaVerified: data.faydaVerified || false,
+        emergencyContact: data.emergencyContact || { name: "", phone: "", relation: "" }
+      })) as PropertyOwner[]
       
       console.log("Fetched properties:", propertyList)
       setOwners(propertyList)
     } catch (err) {
-      setError("Failed to fetch properties from Firebase: " + (err as Error).message)
-      console.error("Error fetching properties:", err)
+      setError("Failed to load properties: " + (err as Error).message)
+      console.error("Error loading properties:", err)
     } finally {
       setLoading(false)
     }

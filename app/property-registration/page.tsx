@@ -208,8 +208,16 @@ export default function PropertyRegistration() {
         console.log("Firebase db instance:", db)
         console.log("Properties collection:", collection(db, "properties"))
         
-        const docRef = await addDoc(collection(db, "properties"), propertyData)
-        console.log("Property registered with ID:", docRef.id)
+        // Store in localStorage instead of Firebase
+        const existingProperties = JSON.parse(localStorage.getItem('registeredProperties') || '[]')
+        const newProperty = {
+          ...propertyData,
+          id: Date.now().toString()
+        }
+        existingProperties.push(newProperty)
+        localStorage.setItem('registeredProperties', JSON.stringify(existingProperties))
+        
+        console.log("Property registered with ID:", newProperty.id)
         setSuccess(true)
         break
       } catch (err) {
