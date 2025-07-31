@@ -213,6 +213,6 @@ docker run -p 3000:3000 labourlink
                     ## teams
                                       email
 full name: Ahmed jemal          hmaudijems4@gmail.com
-           fuad tesfaye         
+           fuad tesfaye         fuadtesfaye24@gmail.com
            Muaz khalid          muazk676@gmail.com
 
