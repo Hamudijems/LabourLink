@@ -4,6 +4,8 @@ SafeHire Ethiopia is a comprehensive Fayda ID-verified employment platform desig
 
 ## 🚀 Quick Setup
 
+  https://labour-link-six.vercel.app/landing
+  
 ### 1. Create Admin User
 First, create the admin user by visiting: `http://localhost:3000/create-admin`
 - Email: hamudijems4@gmail.com  
