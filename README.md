@@ -208,3 +208,11 @@ The SafeHire Ethiopia platform is now fully operational and ready for deployment
 ```bash
 docker build -t labourlink .
 docker run -p 3000:3000 labourlink
+
+
+                    ## teams
+                                      email
+full name: Ahmed jemal          hmaudijems4@gmail.com
+           fuad tesfaye         
+           Muaz khalid          muazk676@gmail.com
+
