@@ -212,6 +212,9 @@ export default function LandingPage() {
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-green-600 text-lg px-8 py-6">
                   <Link href="/property-registration">Register Properties</Link>
                 </Button>
+                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-green-600 text-lg px-8 py-6">
+                  <Link href="/view-skills">View Skills</Link>
+                </Button>
               </div>
             </div>
           </div>

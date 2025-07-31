@@ -402,7 +402,7 @@ const safeFirebaseOperation = async (
   } catch (error) {
     console.error(`❌ Firebase ${operationName} failed:`, error)
     // For write operations, throw error instead of using fallback
-    if (operationName === 'addUser' || operationName === 'updateUser') {
+    if (operationName === 'addUser' || operationName === 'updateUser' || operationName === 'deleteUser') {
       throw error
     }
     console.warn(`⚠️ Using fallback data for ${operationName}`)
@@ -475,17 +475,16 @@ export const updateUser = async (userId: string, updates: Partial<FirebaseUser>)
 }
 
 export const deleteUser = async (userId: string): Promise<void> => {
-  return safeFirebaseOperation(
-    async () => {
-      const { db } = await getFirebaseServices()
-      if (!db) throw new Error("Database not available")
+  try {
+    if (!db) throw new Error("Database not available")
 
-      await deleteDoc(doc(db, COLLECTIONS.USERS, userId))
-      await updateSystemMetrics()
-    },
-    undefined,
-    "deleteUser",
-  )
+    await deleteDoc(doc(db, COLLECTIONS.USERS, userId))
+    console.log(`✅ User ${userId} deleted successfully`)
+    await updateSystemMetrics()
+  } catch (error) {
+    console.error('Firebase deleteUser error:', error)
+    throw new Error(`Failed to delete user: ${error.message}`)
+  }
 }
 
 export const subscribeToUsers = (callback: (users: FirebaseUser[]) => void): (() => void) => {

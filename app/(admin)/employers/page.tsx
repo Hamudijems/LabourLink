@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Briefcase, Phone, Mail, Building, CheckCircle, Search, Eye, FileText } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { subscribeToUsers, updateUser, FirebaseUser } from "@/services/firebase-services"
+import { subscribeToUsers, updateUser, deleteUser, FirebaseUser } from "@/services/firebase-services"
 
 export default function EmployersPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -39,6 +39,17 @@ export default function EmployersPage() {
       await updateUser(employerId, { status: newStatus as any })
     } catch (error) {
       console.error('Failed to update employer status:', error)
+    }
+  }
+
+  const handleDelete = async (employerId: string, employerName: string) => {
+    if (confirm(`Are you sure you want to delete ${employerName}? This action cannot be undone.`)) {
+      try {
+        await deleteUser(employerId)
+      } catch (error) {
+        console.error('Failed to delete employer:', error)
+        alert('Failed to delete employer. Please try again.')
+      }
     }
   }
 
@@ -172,6 +183,13 @@ export default function EmployersPage() {
                       </div>
                     </DialogContent>
                   </Dialog>
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    onClick={() => handleDelete(employer.id!, `${employer.firstName} ${employer.lastName}`)}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </div>
             </CardContent>
