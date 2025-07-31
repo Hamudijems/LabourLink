@@ -23,6 +23,7 @@ import {
   Database,
   Wifi,
   AlertTriangle,
+  FileText,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -519,6 +520,21 @@ export default function UserManagement() {
                       </div>
                     </div>
                   )}
+
+                  {/* Certificate/Document */}
+                  {(selectedUser as any).certificateUrl && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Certificate/Document</h3>
+                      <Button 
+                        onClick={() => window.open((selectedUser as any).certificateUrl, '_blank')}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Document
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -540,6 +556,31 @@ export default function UserManagement() {
                       </div>
                     )}
                   </div>
+                  {(selectedUser as any).businessSections && (selectedUser as any).businessSections.length > 0 && (
+                    <div>
+                      <strong>Business Sections:</strong>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {(selectedUser as any).businessSections.map((section: string, index: number) => (
+                          <Badge key={index} variant="secondary">{section}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(selectedUser as any).companyDocumentUrl && (
+                    <div>
+                      <strong>Company Document:</strong>
+                      <div className="mt-2">
+                        <Button 
+                          onClick={() => window.open((selectedUser as any).companyDocumentUrl, '_blank')}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          View Company Document
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

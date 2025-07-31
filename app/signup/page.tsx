@@ -7,15 +7,22 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
 import { addUser } from "@/services/firebase-services"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { storage } from "@/lib/firebase"
 
 export default function SignupPage() {
   const searchParams = useSearchParams()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
   const [userType, setUserType] = useState("worker")
-  const [skills, setSkills] = useState("")
+  const [skills, setSkills] = useState<string[]>([])
+  const [newSkill, setNewSkill] = useState("")
+  const [certificate, setCertificate] = useState<File | null>(null)
+  const [companyDocument, setCompanyDocument] = useState<File | null>(null)
+  const [businessSections, setBusinessSections] = useState<string[]>([])
+  const [newBusinessSection, setNewBusinessSection] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [firstName, setFirstName] = useState("")
@@ -94,13 +101,49 @@ export default function SignupPage() {
         region,
         city,
         userType: userType as "worker" | "employer",
-        skills: userType === "worker" ? skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+
         companyName: userType === "employer" ? companyName : undefined,
         businessType: userType === "employer" ? businessType : undefined,
       }
 
-      console.log('Attempting to register user:', userData)
-      const userId = await addUser(userData)
+      console.log('Starting registration process...')
+      
+      // For now, skip certificate upload to fix the hanging issue
+      let certificateUrl = undefined
+      // TODO: Re-enable certificate upload after fixing Firebase Storage
+      /*
+      if (userType === "worker" && certificate) {
+        console.log('Uploading certificate...')
+        try {
+          const storageRef = ref(storage, `certificates/${Date.now()}_${certificate.name}`)
+          const snapshot = await uploadBytes(storageRef, certificate)
+          certificateUrl = await getDownloadURL(snapshot.ref)
+          console.log('Certificate uploaded successfully:', certificateUrl)
+        } catch (uploadError) {
+          console.error('Certificate upload failed, continuing without certificate:', uploadError)
+        }
+      }
+      */
+
+      const finalUserData = {
+        fydaId: `${fin}-${fan}`,
+        firstName,
+        lastName,
+        phone,
+        email,
+        region,
+        city,
+        userType: userType as "worker" | "employer",
+        skills: userType === "worker" ? skills : undefined,
+        companyName: userType === "employer" ? companyName : undefined,
+        businessType: userType === "employer" ? businessType : undefined,
+        businessSections: userType === "employer" ? businessSections : undefined,
+        certificateUrl,
+        companyDocumentUrl: userType === "employer" && companyDocument ? 'pending_upload' : undefined
+      }
+
+      console.log('Attempting to register user:', finalUserData)
+      const userId = await addUser(finalUserData)
       console.log('User registered with ID:', userId)
       alert(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully! User ID: ${userId}. Please wait for admin approval.`)
       window.location.href = "/landing"
@@ -110,6 +153,28 @@ export default function SignupPage() {
     }
 
     setIsLoading(false)
+  }
+
+  const addSkill = () => {
+    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
+      setSkills([...skills, newSkill.trim()])
+      setNewSkill("")
+    }
+  }
+
+  const removeSkill = (skillToRemove: string) => {
+    setSkills(skills.filter(skill => skill !== skillToRemove))
+  }
+
+  const addBusinessSection = () => {
+    if (newBusinessSection.trim() && !businessSections.includes(newBusinessSection.trim())) {
+      setBusinessSections([...businessSections, newBusinessSection.trim()])
+      setNewBusinessSection("")
+    }
+  }
+
+  const removeBusinessSection = (sectionToRemove: string) => {
+    setBusinessSections(businessSections.filter(section => section !== sectionToRemove))
   }
 
   return (
@@ -281,21 +346,48 @@ export default function SignupPage() {
                   </div>
                 </div>
                 {userType === "worker" && (
-                  <div>
-                    <Label htmlFor="skills" className="text-base font-medium">
-                      Skills (comma-separated)
-                    </Label>
-                    <Input
-                      id="skills"
-                      type="text"
-                      placeholder="e.g., Construction, Carpentry, Cleaning"
-                      value={skills}
-                      onChange={(e) => setSkills(e.target.value)}
-                      className="mt-2 text-lg py-6"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <Label className="text-base font-medium">Skills</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          type="text"
+                          placeholder="Add a skill"
+                          value={newSkill}
+                          onChange={(e) => setNewSkill(e.target.value)}
+                          className="text-lg py-6"
+                          disabled={isLoading}
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                        />
+                        <Button type="button" onClick={addSkill} disabled={isLoading}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {skills.map((skill, index) => (
+                          <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
+                            <span className="text-sm">{skill}</span>
+                            <button type="button" onClick={() => removeSkill(skill)} className="text-red-500">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="certificate" className="text-base font-medium">
+                        Certificate/Document (Optional)
+                      </Label>
+                      <Input
+                        id="certificate"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => setCertificate(e.target.files?.[0] || null)}
+                        className="mt-2 text-lg py-6"
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </>
                 )}
                 {userType === "employer" && (
                   <>
@@ -329,11 +421,51 @@ export default function SignupPage() {
                         disabled={isLoading}
                       />
                     </div>
+                    <div>
+                      <Label className="text-base font-medium">Business Sections</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          type="text"
+                          placeholder="Add a business section"
+                          value={newBusinessSection}
+                          onChange={(e) => setNewBusinessSection(e.target.value)}
+                          className="text-lg py-6"
+                          disabled={isLoading}
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
+                        />
+                        <Button type="button" onClick={addBusinessSection} disabled={isLoading}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {businessSections.map((section, index) => (
+                          <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded">
+                            <span className="text-sm">{section}</span>
+                            <button type="button" onClick={() => removeBusinessSection(section)} className="text-red-500">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="companyDocument" className="text-base font-medium">
+                        Company Permission Document (Optional)
+                      </Label>
+                      <Input
+                        id="companyDocument"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => setCompanyDocument(e.target.files?.[0] || null)}
+                        className="mt-2 text-lg py-6"
+                        disabled={isLoading}
+                      />
+                    </div>
                   </>
                 )}
                 <Button
                   type="submit"
-                  disabled={!firstName || !lastName || !email || !phone || !region || !city || (userType === "worker" && !skills) || (userType === "employer" && (!companyName || !businessType)) || isLoading}
+                  disabled={!firstName || !lastName || !email || !phone || !region || !city || (userType === "worker" && skills.length === 0) || (userType === "employer" && (!companyName || !businessType || businessSections.length === 0)) || isLoading}
                   className="w-full text-lg py-6"
                   size="lg"
                 >

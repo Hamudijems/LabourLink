@@ -439,6 +439,11 @@ export const addUser = async (
         delete newUser[key]
       }
     })
+    
+    // Ensure required fields are present
+    if (!newUser.fydaId || !newUser.firstName || !newUser.lastName || !newUser.email) {
+      throw new Error('Missing required user fields')
+    }
 
     console.log('Adding user to Firebase:', newUser)
     const docRef = await addDoc(collection(db, COLLECTIONS.USERS), newUser)

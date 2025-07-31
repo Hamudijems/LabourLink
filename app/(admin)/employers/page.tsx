@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Briefcase, Phone, Mail, Building, CheckCircle, Search } from "lucide-react"
+import { Briefcase, Phone, Mail, Building, CheckCircle, Search, Eye, FileText } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { subscribeToUsers, updateUser, FirebaseUser } from "@/services/firebase-services"
 
 export default function EmployersPage() {
@@ -87,12 +88,20 @@ export default function EmployersPage() {
                   <Phone className="h-4 w-4" />
                   <span>{employer.phone}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge className={employer.status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                     {employer.status}
                   </Badge>
                   <span>Jobs Posted: {employer.jobsPosted || 0}</span>
                 </div>
+                {(employer as any).businessSections && (employer as any).businessSections.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <span className="text-sm text-gray-600">Sections:</span>
+                    {(employer as any).businessSections.map((section: string, index: number) => (
+                      <Badge key={index} variant="outline" className="text-xs">{section}</Badge>
+                    ))}
+                  </div>
+                )}
                 {employer.status === 'pending' && (
                   <div className="flex gap-2 mt-2">
                     <Button size="sm" onClick={() => handleStatusUpdate(employer.id!, 'verified')} className="bg-green-600 hover:bg-green-700">
@@ -111,6 +120,58 @@ export default function EmployersPage() {
                 </div>
                 <div className="text-sm text-gray-600">
                   Region: {employer.region} | City: {employer.city}
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Details
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>{employer.firstName} {employer.lastName} - Details</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div><strong>Email:</strong> {employer.email}</div>
+                          <div><strong>Phone:</strong> {employer.phone}</div>
+                          <div><strong>Region:</strong> {employer.region}</div>
+                          <div><strong>City:</strong> {employer.city}</div>
+                          <div><strong>Fayda ID:</strong> {employer.fydaId}</div>
+                          <div><strong>Status:</strong> {employer.status}</div>
+                          <div><strong>Company:</strong> {employer.companyName || 'Not specified'}</div>
+                          <div><strong>Business Type:</strong> {employer.businessType || 'Not specified'}</div>
+                        </div>
+                        {(employer as any).businessSections && (employer as any).businessSections.length > 0 && (
+                          <div>
+                            <strong>Business Sections:</strong>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {(employer as any).businessSections.map((section: string, index: number) => (
+                                <Badge key={index} variant="secondary">{section}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {(employer as any).companyDocumentUrl && (
+                          <div>
+                            <strong>Company Document:</strong>
+                            <div className="mt-2">
+                              <Button 
+                                onClick={() => window.open((employer as any).companyDocumentUrl, '_blank')}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                View Company Document
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </CardContent>

@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Users, Phone, Mail, CheckCircle, Search } from "lucide-react"
+import { Users, Phone, Mail, CheckCircle, Search, Eye, FileText } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { subscribeToUsers, updateUser, FirebaseUser } from "@/services/firebase-services"
 
 export default function WorkersPage() {
@@ -102,6 +103,54 @@ export default function WorkersPage() {
                 </div>
                 <div className="text-sm text-gray-600">
                   Region: {worker.region} | City: {worker.city}
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Details
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>{worker.firstName} {worker.lastName} - Details</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div><strong>Email:</strong> {worker.email}</div>
+                          <div><strong>Phone:</strong> {worker.phone}</div>
+                          <div><strong>Region:</strong> {worker.region}</div>
+                          <div><strong>City:</strong> {worker.city}</div>
+                          <div><strong>Fayda ID:</strong> {worker.fydaId}</div>
+                          <div><strong>Status:</strong> {worker.status}</div>
+                        </div>
+                        <div>
+                          <strong>Skills:</strong>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {worker.skills?.map((skill, index) => (
+                              <Badge key={index} variant="secondary">{skill}</Badge>
+                            )) || 'No skills listed'}
+                          </div>
+                        </div>
+                        {(worker as any).certificateUrl && (
+                          <div>
+                            <strong>Certificate/Document:</strong>
+                            <div className="mt-2">
+                              <Button 
+                                onClick={() => window.open((worker as any).certificateUrl, '_blank')}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                View Document
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </CardContent>
