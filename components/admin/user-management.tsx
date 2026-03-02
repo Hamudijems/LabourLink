@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useUsers } from "../context/user-context"
+import { db } from "@/lib/firebase"
 import {
   Search,
   MoreHorizontal,
@@ -35,19 +35,36 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default function UserManagement() {
-  const { users, pendingUsers, loading, error, updateUser, deleteUser, refreshUsers } = useUsers()
-
+  const [users, setUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const usersCollection = collection(db, "users")
+        const userSnapshot = await getDocs(usersCollection)
+        const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        setUsers(userList)
+      } catch (err) {
+        setError("Failed to fetch users.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fydaId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.faydaId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone.includes(searchTerm)
 
@@ -61,10 +78,17 @@ export default function UserManagement() {
     setActionLoading(`${userId}-${action}`)
     try {
       if (action === "delete") {
-        await deleteUser(userId)
+        await deleteDoc(doc(db, "users", userId))
+      } else if (action === "verify-graduation") {
+        await updateDoc(doc(db, "users", userId), { isGraduationVerified: true })
       } else if (newStatus) {
-        await updateUser(userId, { status: newStatus as any })
+        await updateDoc(doc(db, "users", userId), { status: newStatus })
       }
+      // Refresh users
+      const usersCollection = collection(db, "users")
+      const userSnapshot = await getDocs(usersCollection)
+      const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      setUsers(userList)
     } catch (err) {
       console.error(`Error performing ${action}:`, err)
     } finally {
@@ -217,15 +241,17 @@ export default function UserManagement() {
                   <TableHead>FYDA ID</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Fayda Verified</TableHead>
                   <TableHead>Registration Date</TableHead>
                   <TableHead>Last Active</TableHead>
+                  <TableHead>Graduation</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       <div className="flex items-center justify-center space-x-2">
                         <RefreshCw className="h-4 w-4 animate-spin" />
                         <span>Loading users from Firebase...</span>
@@ -234,7 +260,7 @@ export default function UserManagement() {
                   </TableRow>
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                       {searchTerm || statusFilter !== "all" || typeFilter !== "all"
                         ? "No users match your filters"
                         : "No users found"}
@@ -245,22 +271,33 @@ export default function UserManagement() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">
-                            {user.firstName} {user.lastName}
-                          </p>
+                          <p className="font-medium">{user.name}</p>
                           <p className="text-sm text-gray-500">{user.email}</p>
                           <p className="text-sm text-gray-500">{user.phone}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">{user.fydaId}</code>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user.userType}</Badge>
+                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">{user.faydaId}</code>
                       </TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
+                      <TableCell>
+                        {user.isFaydaVerified ? (
+                          <Badge variant="default" className="bg-green-100 text-green-800">
+                            Verified
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                            Pending
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{user.registrationDate}</TableCell>
                       <TableCell>{user.lastActive}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.isGraduationVerified ? "default" : "secondary"}>
+                          {user.isGraduationVerified ? "Verified" : "Pending"}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -336,8 +373,15 @@ export default function UserManagement() {
       <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+              <DialogTitle className="flex justify-between items-center">
               User Details - {selectedUser?.firstName} {selectedUser?.lastName}
+                <Button
+                  size="sm"
+                  onClick={() => handleUserAction(selectedUser.id, "verify-graduation", "verified")}
+                  disabled={selectedUser.isGraduationVerified || actionLoading === `${selectedUser.id}-verify-graduation`}
+                >
+                  {selectedUser.isGraduationVerified ? "Graduation Verified" : "Verify Graduation"}
+                </Button>
             </DialogTitle>
             <DialogDescription>Complete user information and activity</DialogDescription>
           </DialogHeader>

@@ -6,18 +6,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { QrCode, MapPin, Clock, DollarSign, Star, Eye, CheckCircle } from "lucide-react"
-import { Layout } from "../layout"
-import { useAppData } from "../context/app-data-context"
-import { useUsers } from "../context/user-context"
+import { db } from "@/lib/firebase"
+import { collection, getDocs, where, query, addDoc } from "firebase/firestore"
+import { useAuth } from "../auth/auth-context"
 
 // Mock worker ID for demo - in real app this would come from auth
 const MOCK_WORKER_ID = "worker-123"
 
 export default function WorkerDashboard() {
-  const { jobs, contracts, applications, addApplication } = useAppData()
-  const { users } = useUsers()
+  const { user } = useAuth()
+  const [jobs, setJobs] = useState<any[]>([])
+  const [contracts, setContracts] = useState<any[]>([])
+  const [applications, setApplications] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [showQR, setShowQR] = useState(false)
   const [applyingToJob, setApplyingToJob] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return
+      try {
+        const jobsCollection = collection(db, "jobs")
+        const jobSnapshot = await getDocs(jobsCollection)
+        const jobList = jobSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        setJobs(jobList)
+
+        const contractsCollection = collection(db, "contracts")
+        const conQ = query(contractsCollection, where("workerId", "==", user.uid))
+        const contractSnapshot = await getDocs(conQ)
+        const contractList = contractSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        setContracts(contractList)
+
+        const applicationsCollection = collection(db, "applications")
+        const appQ = query(applicationsCollection, where("workerId", "==", user.uid))
+        const appSnapshot = await getDocs(appQ)
+        const appList = appSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        setApplications(appList)
+
+        const usersCollection = collection(db, "users")
+        const userSnapshot = await getDocs(usersCollection)
+        const userList = userSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        setUsers(userList)
+      } catch (err) {
+        console.error("Failed to fetch data:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [user])
 
   // Get current worker data
   const currentWorker = users.find((u) => u.id === MOCK_WORKER_ID) || users.find((u) => u.userType === "worker")
@@ -67,19 +106,26 @@ export default function WorkerDashboard() {
   const profileViews = 28 // Mock data
 
   const handleApplyToJob = async (job: any) => {
-    if (!currentWorker) return
+    if (!currentWorker || !user) return
 
     setApplyingToJob(job.id)
     try {
-      await addApplication({
+      await addDoc(collection(db, "applications"), {
         jobId: job.id!,
-        workerId: MOCK_WORKER_ID,
+        workerId: user.uid,
         employerId: job.employerId,
         workerName: `${currentWorker.firstName} ${currentWorker.lastName}`,
         jobTitle: job.title,
         status: "pending",
         message: `I am interested in this ${job.title} position. I have experience in ${currentWorker.skills?.slice(0, 2).join(", ")}.`,
+        appliedAt: new Date().toISOString(),
       })
+      // Refresh applications
+      const applicationsCollection = collection(db, "applications")
+      const appQ = query(applicationsCollection, where("workerId", "==", user.uid))
+      const appSnapshot = await getDocs(appQ)
+      const appList = appSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      setApplications(appList)
     } catch (error) {
       console.error("Error applying to job:", error)
     } finally {
@@ -87,287 +133,289 @@ export default function WorkerDashboard() {
     }
   }
 
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
   return (
-    <Layout userType="worker">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back, {currentWorker?.firstName || "Worker"}!
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">Here are your latest job matches and earnings summary</p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Welcome back, {currentWorker?.firstName || "Worker"}!
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300">Here are your latest job matches and earnings summary</p>
+      </div>
 
-        {/* Real-time Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Total Earnings</p>
-                  <p className="text-xl font-bold">{totalEarnings.toLocaleString()} ETB</p>
-                </div>
+      {/* Real-time Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <DollarSign className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total Earnings</p>
+                <p className="text-xl font-bold">{totalEarnings.toLocaleString()} ETB</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Jobs Done</p>
-                  <p className="text-xl font-bold">{completedJobs}</p>
-                </div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Jobs Done</p>
+                <p className="text-xl font-bold">{completedJobs}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Star className="h-5 w-5 text-yellow-500" />
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Rating</p>
-                  <p className="text-xl font-bold">{averageRating}</p>
-                </div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Star className="h-5 w-5 text-yellow-500" />
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Rating</p>
+                <p className="text-xl font-bold">{averageRating}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Eye className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Profile Views</p>
-                  <p className="text-xl font-bold">{profileViews}</p>
-                </div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Eye className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Profile Views</p>
+                <p className="text-xl font-bold">{profileViews}</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Real-time Job Matches */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Job Matches for You
-                  <Badge variant="secondary">{jobMatches.length} available</Badge>
-                </CardTitle>
-                <CardDescription>Jobs matched based on your skills and location (real-time)</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {jobMatches.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No job matches available at the moment.</p>
-                    <p className="text-sm text-gray-400 mt-2">Check back later for new opportunities!</p>
-                  </div>
-                ) : (
-                  jobMatches.map((job) => (
-                    <div
-                      key={job.id}
-                      className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold text-lg">{job.title}</h3>
-                          <p className="text-gray-600 dark:text-gray-300">{job.employerName}</p>
-                        </div>
-                        <Badge variant="outline" className="text-green-600">
-                          {job.match}% match
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Real-time Job Matches */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Job Matches for You
+                <Badge variant="secondary">{jobMatches.length} available</Badge>
+              </CardTitle>
+              <CardDescription>Jobs matched based on your skills and location (real-time)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {jobMatches.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No job matches available at the moment.</p>
+                  <p className="text-sm text-gray-400 mt-2">Check back later for new opportunities!</p>
+                </div>
+              ) : (
+                jobMatches.map((job) => (
+                  <div
+                    key={job.id}
+                    className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{job.title}</h3>
+                        <p className="text-gray-600 dark:text-gray-300">{job.employerName}</p>
+                      </div>
+                      <Badge variant="outline" className="text-green-600">
+                        {job.match}% match
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
+                      <div className="flex items-center text-gray-600 dark:text-gray-300">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {job.location}
+                      </div>
+                      <div className="flex items-center text-gray-600 dark:text-gray-300">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        {job.wage} ETB/{job.wageType}
+                      </div>
+                      <div className="flex items-center text-gray-600 dark:text-gray-300">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {job.duration}
+                      </div>
+                      <div className="text-gray-500 text-xs">{job.applicants} applicants</div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {job.skillsRequired.slice(0, 3).map((skill) => (
+                        <Badge key={skill} variant="secondary" className="text-xs">
+                          {skill}
                         </Badge>
-                      </div>
+                      ))}
+                      {job.skillsRequired.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{job.skillsRequired.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
-                        <div className="flex items-center text-gray-600 dark:text-gray-300">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {job.location}
-                        </div>
-                        <div className="flex items-center text-gray-600 dark:text-gray-300">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          {job.wage} ETB/{job.wageType}
-                        </div>
-                        <div className="flex items-center text-gray-600 dark:text-gray-300">
-                          <Clock className="h-4 w-4 mr-1" />
-                          {job.duration}
-                        </div>
-                        <div className="text-gray-500 text-xs">{job.applicants} applicants</div>
-                      </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        className="flex-1"
+                        onClick={() => handleApplyToJob(job)}
+                        disabled={applyingToJob === job.id}
+                      >
+                        {applyingToJob === job.id ? "Applying..." : "Apply Now"}
+                      </Button>
+                      <Button variant="outline">View Details</Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {job.skillsRequired.slice(0, 3).map((skill) => (
-                          <Badge key={skill} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                        {job.skillsRequired.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{job.skillsRequired.length - 3} more
-                          </Badge>
-                        )}
-                      </div>
+        {/* Profile & QR Code */}
+        <div className="space-y-6">
+          {/* QR Code Profile */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <QrCode className="h-5 w-5 mr-2" />
+                Your QR Profile
+              </CardTitle>
+              <CardDescription>Employers can scan this to view your verified profile</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              {showQR ? (
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg inline-block">
+                    <div className="w-32 h-32 bg-gray-200 flex items-center justify-center">
+                      <QrCode className="h-16 w-16 text-gray-400" />
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Show this QR code to employers</p>
+                  <Button variant="outline" onClick={() => setShowQR(false)}>
+                    Hide QR Code
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={() => setShowQR(true)} className="w-full">
+                  Show QR Code
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
-                      <div className="flex space-x-2">
-                        <Button
-                          className="flex-1"
-                          onClick={() => handleApplyToJob(job)}
-                          disabled={applyingToJob === job.id}
+          {/* Recent Work */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Work</CardTitle>
+              <CardDescription>Your completed contracts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {recentContracts.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">No completed work yet</p>
+              ) : (
+                recentContracts.map((contract) => (
+                  <div key={contract.id} className="border-b pb-4 last:border-b-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-medium">{contract.jobTitle}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{contract.employerName}</p>
+                      </div>
+                      <Badge variant="outline" className="text-green-600">
+                        {contract.status}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600 dark:text-gray-300">
+                        {contract.startDate} - {contract.endDate || "Ongoing"}
+                      </span>
+                      <span className="font-semibold">{contract.totalAmount || contract.wage} ETB</span>
+                    </div>
+                    <div className="flex items-center mt-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${
+                            i < Math.floor(averageRating) ? "text-yellow-400 fill-current" : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Profile Completion */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Strength</CardTitle>
+              <CardDescription>Complete your profile to get more matches</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span>Profile Completion</span>
+                  <span>85%</span>
+                </div>
+                <Progress value={85} className="h-2" />
+                <Button variant="outline" className="w-full bg-transparent">
+                  Complete Profile
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* My Applications */}
+          <Card>
+            <CardHeader>
+              <CardTitle>My Applications</CardTitle>
+              <CardDescription>Track your job applications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {workerApplications.length === 0 ? (
+                  <p className="text-center text-gray-500 py-4">No applications yet</p>
+                ) : (
+                  workerApplications.slice(0, 3).map((application) => (
+                    <div key={application.id} className="border-b pb-3 last:border-b-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium text-sm">{application.jobTitle}</h4>
+                          <p className="text-xs text-gray-600">Applied {application.appliedAt}</p>
+                        </div>
+                        <Badge
+                          variant={
+                            application.status === "accepted"
+                              ? "default"
+                              : application.status === "rejected"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                          className="text-xs"
                         >
-                          {applyingToJob === job.id ? "Applying..." : "Apply Now"}
-                        </Button>
-                        <Button variant="outline">View Details</Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Profile & QR Code */}
-          <div className="space-y-6">
-            {/* QR Code Profile */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <QrCode className="h-5 w-5 mr-2" />
-                  Your QR Profile
-                </CardTitle>
-                <CardDescription>Employers can scan this to view your verified profile</CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                {showQR ? (
-                  <div className="space-y-4">
-                    <div className="bg-white p-4 rounded-lg inline-block">
-                      <div className="w-32 h-32 bg-gray-200 flex items-center justify-center">
-                        <QrCode className="h-16 w-16 text-gray-400" />
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">Show this QR code to employers</p>
-                    <Button variant="outline" onClick={() => setShowQR(false)}>
-                      Hide QR Code
-                    </Button>
-                  </div>
-                ) : (
-                  <Button onClick={() => setShowQR(true)} className="w-full">
-                    Show QR Code
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Work */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Work</CardTitle>
-                <CardDescription>Your completed contracts</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {recentContracts.length === 0 ? (
-                  <p className="text-center text-gray-500 py-4">No completed work yet</p>
-                ) : (
-                  recentContracts.map((contract) => (
-                    <div key={contract.id} className="border-b pb-4 last:border-b-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h4 className="font-medium">{contract.jobTitle}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">{contract.employerName}</p>
-                        </div>
-                        <Badge variant="outline" className="text-green-600">
-                          {contract.status}
+                          {application.status}
                         </Badge>
                       </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600 dark:text-gray-300">
-                          {contract.startDate} - {contract.endDate || "Ongoing"}
-                        </span>
-                        <span className="font-semibold">{contract.totalAmount || contract.wage} ETB</span>
-                      </div>
-                      <div className="flex items-center mt-2">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(averageRating) ? "text-yellow-400 fill-current" : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
                     </div>
                   ))
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Profile Completion */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Strength</CardTitle>
-                <CardDescription>Complete your profile to get more matches</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Profile Completion</span>
-                    <span>85%</span>
-                  </div>
-                  <Progress value={85} className="h-2" />
-                  <Button variant="outline" className="w-full bg-transparent">
-                    Complete Profile
+                {workerApplications.length > 3 && (
+                  <Button variant="outline" size="sm" className="w-full bg-transparent">
+                    View All Applications ({workerApplications.length})
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* My Applications */}
-            <Card>
-              <CardHeader>
-                <CardTitle>My Applications</CardTitle>
-                <CardDescription>Track your job applications</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {workerApplications.length === 0 ? (
-                    <p className="text-center text-gray-500 py-4">No applications yet</p>
-                  ) : (
-                    workerApplications.slice(0, 3).map((application) => (
-                      <div key={application.id} className="border-b pb-3 last:border-b-0">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium text-sm">{application.jobTitle}</h4>
-                            <p className="text-xs text-gray-600">Applied {application.appliedAt}</p>
-                          </div>
-                          <Badge
-                            variant={
-                              application.status === "accepted"
-                                ? "default"
-                                : application.status === "rejected"
-                                  ? "destructive"
-                                  : "secondary"
-                            }
-                            className="text-xs"
-                          >
-                            {application.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  {workerApplications.length > 3 && (
-                    <Button variant="outline" size="sm" className="w-full bg-transparent">
-                      View All Applications ({workerApplications.length})
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </Layout>
+    </div>
   )
 }
