@@ -49,6 +49,7 @@ export function FirebaseStatus() {
           size="sm"
           onClick={checkConnection}
           disabled={isChecking}
+          aria-label="Refresh Firebase connection status"
         >
           {isChecking ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
