@@ -1,18 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase, Plus, X, Loader2 } from "lucide-react"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
-export default function SignupPage() {
+function SignupForm() {
   const searchParams = useSearchParams()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
@@ -246,7 +246,14 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Verifying..." : "Verify Fayda ID"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify Fayda ID"
+                  )}
                 </Button>
               </div>
             ) : (
@@ -469,7 +476,14 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </div>
             )}
@@ -477,5 +491,22 @@ export default function SignupPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-12 w-12 text-green-600 animate-spin mb-4" />
+            <p className="text-lg font-medium text-gray-600 dark:text-gray-400">Loading signup form...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   )
 }
