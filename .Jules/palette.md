@@ -1,0 +1,3 @@
+## 2024-03-24 - Form Accessibility and Feedback Improvements
+**Learning:** Next.js 14 client components using `useSearchParams` must be wrapped in a `Suspense` boundary to prevent build-time errors and improve perceived performance. Also, replacing blocking `alert()` calls with `sonner` toasts provides a much smoother, non-disruptive feedback loop for users during critical flows like registration.
+**Action:** Always check for `useSearchParams` usage in client components and ensure they are wrapped in `Suspense`. Prioritize `sonner` for notifications and ensure the `Toaster` is placed in the root layout to maintain visibility across navigation.
