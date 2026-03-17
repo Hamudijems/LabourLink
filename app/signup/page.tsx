@@ -1,19 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase, Plus, X, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
-export default function SignupPage() {
+function SignupForm() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
   const [userType, setUserType] = useState("worker")
@@ -145,8 +147,10 @@ export default function SignupPage() {
       console.log('Attempting to register user:', finalUserData)
       const userId = await addUser(finalUserData)
       console.log('User registered with ID:', userId)
-      alert(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully! User ID: ${userId}. Please wait for admin approval.`)
-      window.location.href = "/landing"
+      toast.success(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully!`, {
+        description: `User ID: ${userId}. Please wait for admin approval.`
+      })
+      router.push("/landing")
     } catch (error) {
       console.error('Registration error:', error)
       setError(`Failed to create account: ${error.message || error}`)
@@ -178,8 +182,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
             <Shield className="h-12 w-12 text-green-600" />
@@ -246,7 +249,14 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Verifying..." : "Verify Fayda ID"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify Fayda ID"
+                  )}
                 </Button>
               </div>
             ) : (
@@ -265,6 +275,7 @@ export default function SignupPage() {
                       className="mt-2 text-lg py-6"
                       required
                       disabled={isLoading}
+                      autoComplete="given-name"
                     />
                   </div>
                   <div>
@@ -280,6 +291,7 @@ export default function SignupPage() {
                       className="mt-2 text-lg py-6"
                       required
                       disabled={isLoading}
+                      autoComplete="family-name"
                     />
                   </div>
                 </div>
@@ -296,6 +308,7 @@ export default function SignupPage() {
                     className="mt-2 text-lg py-6"
                     required
                     disabled={isLoading}
+                    autoComplete="email"
                   />
                 </div>
                 <div>
@@ -311,6 +324,7 @@ export default function SignupPage() {
                     className="mt-2 text-lg py-6"
                     required
                     disabled={isLoading}
+                    autoComplete="tel"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -469,13 +483,38 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </div>
             )}
           </form>
         </CardContent>
       </Card>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <Suspense fallback={
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <Loader2 className="h-12 w-12 text-green-600 animate-spin" />
+            </div>
+            <CardTitle className="text-2xl">Loading Registration</CardTitle>
+          </CardHeader>
+        </Card>
+      }>
+        <SignupForm />
+      </Suspense>
     </div>
   )
 }
