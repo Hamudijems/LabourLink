@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, Eye, EyeOff, AlertCircle } from "lucide-react"
+import { Shield, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react"
 
 export default function AdminLogin() {
   const { login } = useAuth()
@@ -72,6 +72,7 @@ export default function AdminLogin() {
                   className="mt-2 text-lg py-6"
                   required
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
 
@@ -89,6 +90,7 @@ export default function AdminLogin() {
                     className="text-lg py-6 pr-12"
                     required
                     disabled={isLoading}
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
@@ -96,6 +98,7 @@ export default function AdminLogin() {
                     size="sm"
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -104,7 +107,14 @@ export default function AdminLogin() {
             </div>
 
             <Button type="submit" disabled={!email || !password || isLoading} className="w-full text-lg py-6" size="lg">
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
         </CardContent>
