@@ -1,0 +1,3 @@
+## 2025-05-15 - State Synchronization in Verification Scripts
+**Learning:** When automating UI verification with Playwright, many buttons in this repo are disabled by default until form validation is met. Additionally, Shadcn/Radix components may require a brief pause (`page.wait_for_timeout(1000)`) after filling inputs for the internal React state and the DOM attributes (like `aria-label`) to synchronize.
+**Action:** Always fill required form fields (e.g., #email, #password) before attempting to interact with toggle buttons, and use explicit timeouts or ID selectors to ensure the UI has finished re-rendering before asserting on attribute changes.
