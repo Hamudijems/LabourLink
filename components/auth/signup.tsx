@@ -334,6 +334,7 @@ export default function Signup() {
                     <Label htmlFor="firstName">First Name *</Label>
                     <Input
                       id="firstName"
+                      autoComplete="given-name"
                       value={formData.firstName}
                       onChange={(e) => handleInputChange("firstName", e.target.value)}
                     />
@@ -342,6 +343,7 @@ export default function Signup() {
                     <Label htmlFor="lastName">Last Name *</Label>
                     <Input
                       id="lastName"
+                      autoComplete="family-name"
                       value={formData.lastName}
                       onChange={(e) => handleInputChange("lastName", e.target.value)}
                     />
@@ -351,6 +353,7 @@ export default function Signup() {
                   <Label htmlFor="phone">Phone Number *</Label>
                   <Input
                     id="phone"
+                    autoComplete="tel"
                     value={formData.phone}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
                     placeholder="+251911234567"
@@ -361,6 +364,7 @@ export default function Signup() {
                   <Input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                   />

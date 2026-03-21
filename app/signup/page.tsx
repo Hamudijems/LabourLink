@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,7 @@ import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
-export default function SignupPage() {
+function SignupForm() {
   const searchParams = useSearchParams()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
@@ -259,6 +259,7 @@ export default function SignupPage() {
                     <Input
                       id="firstName"
                       type="text"
+                      autoComplete="given-name"
                       placeholder="First name"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
@@ -274,6 +275,7 @@ export default function SignupPage() {
                     <Input
                       id="lastName"
                       type="text"
+                      autoComplete="family-name"
                       placeholder="Last name"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
@@ -290,6 +292,7 @@ export default function SignupPage() {
                   <Input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -305,6 +308,7 @@ export default function SignupPage() {
                   <Input
                     id="phone"
                     type="tel"
+                    autoComplete="tel"
                     placeholder="Enter your phone number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -477,5 +481,13 @@ export default function SignupPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupForm />
+    </Suspense>
   )
 }
