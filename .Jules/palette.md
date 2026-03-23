@@ -1,0 +1,3 @@
+## 2025-01-24 - Accessibility and Build Resilience in Next.js 14
+**Learning:** Client components using `useSearchParams` in Next.js 14 must be wrapped in a `Suspense` boundary. Failing to do so can lead to production build failures even if the dev server runs correctly. Additionally, standard Radix UI/shadcn toggle buttons often miss `aria-label` attributes when they only contain icons.
+**Action:** Always wrap `useSearchParams` usage in `Suspense` and audit all icon-only buttons for missing ARIA labels to ensure screen reader accessibility. Always provide dynamic labels for toggles (e.g., "Show password" vs "Hide password").
