@@ -336,6 +336,7 @@ export default function Signup() {
                       id="firstName"
                       value={formData.firstName}
                       onChange={(e) => handleInputChange("firstName", e.target.value)}
+                      autoComplete="given-name"
                     />
                   </div>
                   <div>
@@ -344,6 +345,7 @@ export default function Signup() {
                       id="lastName"
                       value={formData.lastName}
                       onChange={(e) => handleInputChange("lastName", e.target.value)}
+                      autoComplete="family-name"
                     />
                   </div>
                 </div>
@@ -354,6 +356,7 @@ export default function Signup() {
                     value={formData.phone}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
                     placeholder="+251911234567"
+                    autoComplete="tel"
                   />
                 </div>
                 <div>
@@ -363,6 +366,7 @@ export default function Signup() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
+                    autoComplete="email"
                   />
                 </div>
               </div>
