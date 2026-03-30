@@ -1,0 +1,3 @@
+## 2026-03-30 - Enhanced Global UI Feedback and Accessibility in Signup Flow
+**Learning:** Next.js client components using `useSearchParams` must be wrapped in a `Suspense` boundary to prevent build failures during static page generation and ensure a smooth hydration process. Transitioning from blocking `alert()` calls to non-blocking `toast` notifications significantly improves user flow and perceived performance.
+**Action:** Always wrap components using `useSearchParams` in `Suspense`. Prioritize modern feedback mechanisms (like `sonner` toasts) and ensure all interactive elements, especially icon-only buttons, have clear ARIA labels for accessibility.
