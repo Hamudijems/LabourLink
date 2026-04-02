@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,7 @@ import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
-export default function SignupPage() {
+function SignupForm() {
   const searchParams = useSearchParams()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
@@ -178,304 +178,336 @@ export default function SignupPage() {
   }
 
   return (
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <div className="flex items-center justify-center mb-4">
+          <Shield className="h-12 w-12 text-green-600" aria-hidden="true" />
+        </div>
+        <div className="flex items-center justify-center mb-2">
+          {userType === 'worker' ? (
+            <Users className="h-6 w-6 text-blue-600 mr-2" aria-hidden="true" />
+          ) : (
+            <Briefcase className="h-6 w-6 text-green-600 mr-2" aria-hidden="true" />
+          )}
+          <CardTitle className="text-2xl">
+            {userType === 'worker' ? 'Join as Worker' : 'Join as Employer'}
+          </CardTitle>
+        </div>
+        <CardDescription>
+          {userType === 'worker'
+            ? 'Register as a worker to find trusted employment opportunities.'
+            : 'Register as an employer to find verified workers.'}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {!isVerified ? (
+            <div className="space-y-4">
+
+              <div>
+                <Label htmlFor="fin" className="text-base font-medium">
+                  FIN (Fayda Identification Number)
+                </Label>
+                <Input
+                  id="fin"
+                  type="text"
+                  placeholder="Enter your FIN"
+                  value={fin}
+                  onChange={(e) => setFin(e.target.value)}
+                  className="mt-2 text-lg py-6"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <Label htmlFor="fan" className="text-base font-medium">
+                  FAN (Fayda Account Number)
+                </Label>
+                <Input
+                  id="fan"
+                  type="text"
+                  placeholder="Enter your FAN"
+                  value={fan}
+                  onChange={(e) => setFan(e.target.value)}
+                  className="mt-2 text-lg py-6"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <Button
+                type="button"
+                onClick={handleVerify}
+                disabled={!fin || !fan || isLoading}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
+                {isLoading ? "Verifying..." : "Verify Fayda ID"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName" className="text-base font-medium">
+                    First Name
+                  </Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="First name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="mt-2 text-lg py-6"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName" className="text-base font-medium">
+                    Last Name
+                  </Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Last name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="mt-2 text-lg py-6"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="email" className="text-base font-medium">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 text-lg py-6"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone" className="text-base font-medium">
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="mt-2 text-lg py-6"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="region" className="text-base font-medium">
+                    Region
+                  </Label>
+                  <Input
+                    id="region"
+                    type="text"
+                    placeholder="Your region"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="mt-2 text-lg py-6"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="city" className="text-base font-medium">
+                    City
+                  </Label>
+                  <Input
+                    id="city"
+                    type="text"
+                    placeholder="Your city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="mt-2 text-lg py-6"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+              {userType === "worker" && (
+                <>
+                  <div>
+                    <Label className="text-base font-medium">Skills</Label>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        type="text"
+                        placeholder="Add a skill"
+                        value={newSkill}
+                        onChange={(e) => setNewSkill(e.target.value)}
+                        className="text-lg py-6"
+                        disabled={isLoading}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                      />
+                      <Button
+                        type="button"
+                        onClick={addSkill}
+                        disabled={isLoading}
+                        aria-label="Add skill"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2" role="list" aria-label="Selected skills">
+                      {skills.map((skill, index) => (
+                        <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded" role="listitem">
+                          <span className="text-sm">{skill}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeSkill(skill)}
+                            className="text-red-500"
+                            aria-label={`Remove ${skill} skill`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="certificate" className="text-base font-medium">
+                      Certificate/Document (Optional)
+                    </Label>
+                    <Input
+                      id="certificate"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setCertificate(e.target.files?.[0] || null)}
+                      className="mt-2 text-lg py-6"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </>
+              )}
+              {userType === "employer" && (
+                <>
+                  <div>
+                    <Label htmlFor="companyName" className="text-base font-medium">
+                      Company Name
+                    </Label>
+                    <Input
+                      id="companyName"
+                      type="text"
+                      placeholder="Your company name"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="mt-2 text-lg py-6"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="businessType" className="text-base font-medium">
+                      Business Type
+                    </Label>
+                    <Input
+                      id="businessType"
+                      type="text"
+                      placeholder="e.g., Construction, Retail, Services"
+                      value={businessType}
+                      onChange={(e) => setBusinessType(e.target.value)}
+                      className="mt-2 text-lg py-6"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-base font-medium">Business Sections</Label>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        type="text"
+                        placeholder="Add a business section"
+                        value={newBusinessSection}
+                        onChange={(e) => setNewBusinessSection(e.target.value)}
+                        className="text-lg py-6"
+                        disabled={isLoading}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
+                      />
+                      <Button
+                        type="button"
+                        onClick={addBusinessSection}
+                        disabled={isLoading}
+                        aria-label="Add business section"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2" role="list" aria-label="Selected business sections">
+                      {businessSections.map((section, index) => (
+                        <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded" role="listitem">
+                          <span className="text-sm">{section}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeBusinessSection(section)}
+                            className="text-red-500"
+                            aria-label={`Remove ${section} business section`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="companyDocument" className="text-base font-medium">
+                      Company Permission Document (Optional)
+                    </Label>
+                    <Input
+                      id="companyDocument"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setCompanyDocument(e.target.files?.[0] || null)}
+                      className="mt-2 text-lg py-6"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </>
+              )}
+              <Button
+                type="submit"
+                disabled={!firstName || !lastName || !email || !phone || !region || !city || (userType === "worker" && skills.length === 0) || (userType === "employer" && (!companyName || !businessType || businessSections.length === 0)) || isLoading}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
+                {isLoading ? "Creating Account..." : "Create Account"}
+              </Button>
+            </div>
+          )}
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function SignupPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <Shield className="h-12 w-12 text-green-600" />
-          </div>
-          <div className="flex items-center justify-center mb-2">
-            {userType === 'worker' ? <Users className="h-6 w-6 text-blue-600 mr-2" /> : <Briefcase className="h-6 w-6 text-green-600 mr-2" />}
-            <CardTitle className="text-2xl">
-              {userType === 'worker' ? 'Join as Worker' : 'Join as Employer'}
-            </CardTitle>
-          </div>
-          <CardDescription>
-            {userType === 'worker' 
-              ? 'Register as a worker to find trusted employment opportunities.' 
-              : 'Register as an employer to find verified workers.'}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {!isVerified ? (
-              <div className="space-y-4">
-
-                <div>
-                  <Label htmlFor="fin" className="text-base font-medium">
-                    FIN (Fayda Identification Number)
-                  </Label>
-                  <Input
-                    id="fin"
-                    type="text"
-                    placeholder="Enter your FIN"
-                    value={fin}
-                    onChange={(e) => setFin(e.target.value)}
-                    className="mt-2 text-lg py-6"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="fan" className="text-base font-medium">
-                    FAN (Fayda Account Number)
-                  </Label>
-                  <Input
-                    id="fan"
-                    type="text"
-                    placeholder="Enter your FAN"
-                    value={fan}
-                    onChange={(e) => setFan(e.target.value)}
-                    className="mt-2 text-lg py-6"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  onClick={handleVerify}
-                  disabled={!fin || !fan || isLoading}
-                  className="w-full text-lg py-6"
-                  size="lg"
-                >
-                  {isLoading ? "Verifying..." : "Verify Fayda ID"}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName" className="text-base font-medium">
-                      First Name
-                    </Label>
-                    <Input
-                      id="firstName"
-                      type="text"
-                      placeholder="First name"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="mt-2 text-lg py-6"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName" className="text-base font-medium">
-                      Last Name
-                    </Label>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      placeholder="Last name"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="mt-2 text-lg py-6"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="email" className="text-base font-medium">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="mt-2 text-lg py-6"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone" className="text-base font-medium">
-                    Phone Number
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="mt-2 text-lg py-6"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="region" className="text-base font-medium">
-                      Region
-                    </Label>
-                    <Input
-                      id="region"
-                      type="text"
-                      placeholder="Your region"
-                      value={region}
-                      onChange={(e) => setRegion(e.target.value)}
-                      className="mt-2 text-lg py-6"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="city" className="text-base font-medium">
-                      City
-                    </Label>
-                    <Input
-                      id="city"
-                      type="text"
-                      placeholder="Your city"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      className="mt-2 text-lg py-6"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-                {userType === "worker" && (
-                  <>
-                    <div>
-                      <Label className="text-base font-medium">Skills</Label>
-                      <div className="flex gap-2 mt-2">
-                        <Input
-                          type="text"
-                          placeholder="Add a skill"
-                          value={newSkill}
-                          onChange={(e) => setNewSkill(e.target.value)}
-                          className="text-lg py-6"
-                          disabled={isLoading}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                        />
-                        <Button type="button" onClick={addSkill} disabled={isLoading}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {skills.map((skill, index) => (
-                          <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
-                            <span className="text-sm">{skill}</span>
-                            <button type="button" onClick={() => removeSkill(skill)} className="text-red-500">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="certificate" className="text-base font-medium">
-                        Certificate/Document (Optional)
-                      </Label>
-                      <Input
-                        id="certificate"
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => setCertificate(e.target.files?.[0] || null)}
-                        className="mt-2 text-lg py-6"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </>
-                )}
-                {userType === "employer" && (
-                  <>
-                    <div>
-                      <Label htmlFor="companyName" className="text-base font-medium">
-                        Company Name
-                      </Label>
-                      <Input
-                        id="companyName"
-                        type="text"
-                        placeholder="Your company name"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        className="mt-2 text-lg py-6"
-                        required
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="businessType" className="text-base font-medium">
-                        Business Type
-                      </Label>
-                      <Input
-                        id="businessType"
-                        type="text"
-                        placeholder="e.g., Construction, Retail, Services"
-                        value={businessType}
-                        onChange={(e) => setBusinessType(e.target.value)}
-                        className="mt-2 text-lg py-6"
-                        required
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-base font-medium">Business Sections</Label>
-                      <div className="flex gap-2 mt-2">
-                        <Input
-                          type="text"
-                          placeholder="Add a business section"
-                          value={newBusinessSection}
-                          onChange={(e) => setNewBusinessSection(e.target.value)}
-                          className="text-lg py-6"
-                          disabled={isLoading}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
-                        />
-                        <Button type="button" onClick={addBusinessSection} disabled={isLoading}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {businessSections.map((section, index) => (
-                          <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded">
-                            <span className="text-sm">{section}</span>
-                            <button type="button" onClick={() => removeBusinessSection(section)} className="text-red-500">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="companyDocument" className="text-base font-medium">
-                        Company Permission Document (Optional)
-                      </Label>
-                      <Input
-                        id="companyDocument"
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => setCompanyDocument(e.target.files?.[0] || null)}
-                        className="mt-2 text-lg py-6"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </>
-                )}
-                <Button
-                  type="submit"
-                  disabled={!firstName || !lastName || !email || !phone || !region || !city || (userType === "worker" && skills.length === 0) || (userType === "employer" && (!companyName || !businessType || businessSections.length === 0)) || isLoading}
-                  className="w-full text-lg py-6"
-                  size="lg"
-                >
-                  {isLoading ? "Creating Account..." : "Create Account"}
-                </Button>
-              </div>
-            )}
-          </form>
-        </CardContent>
-      </Card>
+      <Suspense fallback={null}>
+        <SignupForm />
+      </Suspense>
     </div>
   )
 }
