@@ -1,0 +1,3 @@
+## 2025-05-14 - Next.js SearchParams & UX Feedback
+**Learning:** In Next.js 14, using `useSearchParams()` in a client component requires a `Suspense` boundary. Without it, the page may bail out of static rendering, causing build errors and a sub-optimal loading experience where the whole page might "flicker" or show a blank state during CSR. Additionally, when providing feedback (toasts), using `router.push()` from `next/navigation` is superior to `window.location.href` as it performs a client-side transition that preserves the application state (and the toast notification).
+**Action:** Always wrap components using `useSearchParams` in `Suspense` and prefer `router.push` for navigation to ensure persistent user feedback.
