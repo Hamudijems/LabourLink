@@ -1,0 +1,3 @@
+## 2025-05-22 - [Standardizing Feedback and Accessibility in Signup]
+**Learning:** Next.js client components using `useSearchParams` must be wrapped in a `Suspense` boundary to avoid build-time errors during static generation. Using `router.push` from `next/navigation` is preferred over `window.location.href` to maintain the state of global UI components like `sonner` toasts during navigation.
+**Action:** Always check for `useSearchParams` in client components and ensure a `Suspense` boundary exists. Use `sonner` for integrated notifications and add `aria-label` to all icon-only buttons for A11y.
