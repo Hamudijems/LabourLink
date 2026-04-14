@@ -1,0 +1,1 @@
+## 2025-04-14 - Accessible Password Visibility Toggles\n**Learning:** Password visibility toggle buttons using icons must have dynamic ARIA labels (e.g., 'Show password'/'Hide password') to be accessible to screen reader users.\n**Action:** Always include an `aria-label` that updates based on the toggle state.
