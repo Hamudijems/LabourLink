@@ -1,0 +1,3 @@
+## 2024-03-27 - Next.js 14 Build Stability & Toast UX
+**Learning:** In Next.js 14, using `useSearchParams()` without a `Suspense` boundary causes production build failures during prerendering. Additionally, using `window.location.href` for navigation clears the global `Toaster` state because it triggers a full page reload, whereas `router.push()` preserves the app state and allows toasts to persist across "pages".
+**Action:** Always wrap client components using `useSearchParams()` in a `<Suspense>` boundary. Prefer `next/navigation`'s `useRouter` for client-side transitions to ensure a smooth, state-preserving UX and reliable notification delivery.

@@ -1,19 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase, Plus, X, CheckCircle2 } from "lucide-react"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
+import { toast } from "sonner"
 
-export default function SignupPage() {
+function SignupForm() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
   const [userType, setUserType] = useState("worker")
@@ -92,39 +94,6 @@ export default function SignupPage() {
     setError("")
 
     try {
-      const userData = {
-        fydaId: `${fin}-${fan}`,
-        firstName,
-        lastName,
-        phone,
-        email,
-        region,
-        city,
-        userType: userType as "worker" | "employer",
-
-        companyName: userType === "employer" ? companyName : undefined,
-        businessType: userType === "employer" ? businessType : undefined,
-      }
-
-      console.log('Starting registration process...')
-      
-      // For now, skip certificate upload to fix the hanging issue
-      let certificateUrl = undefined
-      // TODO: Re-enable certificate upload after fixing Firebase Storage
-      /*
-      if (userType === "worker" && certificate) {
-        console.log('Uploading certificate...')
-        try {
-          const storageRef = ref(storage, `certificates/${Date.now()}_${certificate.name}`)
-          const snapshot = await uploadBytes(storageRef, certificate)
-          certificateUrl = await getDownloadURL(snapshot.ref)
-          console.log('Certificate uploaded successfully:', certificateUrl)
-        } catch (uploadError) {
-          console.error('Certificate upload failed, continuing without certificate:', uploadError)
-        }
-      }
-      */
-
       const finalUserData = {
         fydaId: `${fin}-${fan}`,
         firstName,
@@ -138,18 +107,17 @@ export default function SignupPage() {
         companyName: userType === "employer" ? companyName : undefined,
         businessType: userType === "employer" ? businessType : undefined,
         businessSections: userType === "employer" ? businessSections : undefined,
-        certificateUrl,
+        certificateUrl: undefined,
         companyDocumentUrl: userType === "employer" && companyDocument ? 'pending_upload' : undefined
       }
 
-      console.log('Attempting to register user:', finalUserData)
       const userId = await addUser(finalUserData)
-      console.log('User registered with ID:', userId)
-      alert(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully! User ID: ${userId}. Please wait for admin approval.`)
-      window.location.href = "/landing"
+      toast.success(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully!`, {
+        description: "Please wait for admin approval."
+      })
+      router.push("/landing")
     } catch (error) {
-      console.error('Registration error:', error)
-      setError(`Failed to create account: ${error.message || error}`)
+      setError(`Failed to create account: ${error instanceof Error ? error.message : String(error)}`)
     }
 
     setIsLoading(false)
@@ -251,6 +219,12 @@ export default function SignupPage() {
               </div>
             ) : (
               <div className="space-y-4">
+                  <Alert className="bg-green-50 border-green-200 text-green-800">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription>
+                      Identity verified successfully for {verifiedUser?.name || "User"}.
+                    </AlertDescription>
+                  </Alert>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName" className="text-base font-medium">
@@ -359,7 +333,12 @@ export default function SignupPage() {
                           disabled={isLoading}
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
                         />
-                        <Button type="button" onClick={addSkill} disabled={isLoading}>
+                        <Button
+                          type="button"
+                          onClick={addSkill}
+                          disabled={isLoading}
+                          aria-label="Add skill"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -367,7 +346,12 @@ export default function SignupPage() {
                         {skills.map((skill, index) => (
                           <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
                             <span className="text-sm">{skill}</span>
-                            <button type="button" onClick={() => removeSkill(skill)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="text-red-500"
+                              aria-label={`Remove skill ${skill}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -433,7 +417,12 @@ export default function SignupPage() {
                           disabled={isLoading}
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
                         />
-                        <Button type="button" onClick={addBusinessSection} disabled={isLoading}>
+                        <Button
+                          type="button"
+                          onClick={addBusinessSection}
+                          disabled={isLoading}
+                          aria-label="Add business section"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -441,7 +430,12 @@ export default function SignupPage() {
                         {businessSections.map((section, index) => (
                           <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded">
                             <span className="text-sm">{section}</span>
-                            <button type="button" onClick={() => removeBusinessSection(section)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeBusinessSection(section)}
+                              className="text-red-500"
+                              aria-label={`Remove business section ${section}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -477,5 +471,22 @@ export default function SignupPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="py-10 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading registration form...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   )
 }
