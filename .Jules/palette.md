@@ -1,0 +1,3 @@
+## 2024-03-22 - Toast Persistence and Build Stability
+**Learning:** In Next.js 14, using `window.location.href` after a successful action clears the global `Toaster` state due to a full page reload. Switching to `next/navigation`'s `router.push()` preserves the toast notification, providing better feedback. Additionally, `useSearchParams()` must be wrapped in a `<Suspense>` boundary to prevent production build failures.
+**Action:** Always use `router.push()` for internal navigation when feedback (like toasts) needs to persist, and ensure `useSearchParams()` is properly encapsulated in a `Suspense` boundary.
