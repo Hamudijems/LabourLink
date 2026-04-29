@@ -1,0 +1,3 @@
+## 2025-05-14 - Next.js 14 SearchParams & Toast Persistence
+**Learning:** In Next.js 14, using `useSearchParams()` in a client component triggers a build error unless wrapped in a `<Suspense>` boundary. Additionally, using `window.location.href` for post-submission navigation clears the `Toaster` state (sonner), causing success messages to disappear instantly.
+**Action:** Always wrap `useSearchParams` logic in a dedicated sub-component inside `<Suspense>` to ensure build stability. Use `router.push()` from `next/navigation` for client-side routing to preserve global UI state like toast notifications.
