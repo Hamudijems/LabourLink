@@ -1,0 +1,3 @@
+## 2025-03-22 - Next.js CSR Bailout and Multi-step Form Feedback
+**Learning:** In Next.js 14, using `useSearchParams()` at the page level without a `Suspense` boundary triggers a build-time error ("useSearchParams() should be wrapped in a suspense boundary"). Additionally, replacing browser `alert()` with `sonner` toast provides a more professional feel but requires a manual delay if followed by immediate navigation to ensure the user can read the feedback.
+**Action:** Always wrap components using `useSearchParams()` in `Suspense` and use `router.push()` with a `setTimeout` for success notifications that precede redirects.
