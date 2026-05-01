@@ -1,18 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, CheckCircle2, Users, Briefcase, Plus, X } from "lucide-react"
+import { toast } from "sonner"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
-export default function SignupPage() {
+function SignupForm() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
@@ -145,8 +147,12 @@ export default function SignupPage() {
       console.log('Attempting to register user:', finalUserData)
       const userId = await addUser(finalUserData)
       console.log('User registered with ID:', userId)
-      alert(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully! User ID: ${userId}. Please wait for admin approval.`)
-      window.location.href = "/landing"
+      toast.success(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully! Please wait for admin approval.`)
+
+      // Delay redirection to allow user to see the success toast
+      setTimeout(() => {
+        router.push("/landing")
+      }, 2000)
     } catch (error) {
       console.error('Registration error:', error)
       setError(`Failed to create account: ${error.message || error}`)
@@ -178,8 +184,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
             <Shield className="h-12 w-12 text-green-600" />
@@ -203,6 +208,15 @@ export default function SignupPage() {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {isVerified && (
+              <Alert className="bg-green-50 border-green-200 text-green-800 mb-6">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription>
+                  Fayda ID verified successfully for <strong>{firstName} {lastName}</strong>
+                </AlertDescription>
               </Alert>
             )}
 
@@ -359,7 +373,7 @@ export default function SignupPage() {
                           disabled={isLoading}
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
                         />
-                        <Button type="button" onClick={addSkill} disabled={isLoading}>
+                        <Button type="button" onClick={addSkill} disabled={isLoading} aria-label="Add skill">
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -367,7 +381,12 @@ export default function SignupPage() {
                         {skills.map((skill, index) => (
                           <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
                             <span className="text-sm">{skill}</span>
-                            <button type="button" onClick={() => removeSkill(skill)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              aria-label={`Remove skill ${skill}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -433,7 +452,7 @@ export default function SignupPage() {
                           disabled={isLoading}
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
                         />
-                        <Button type="button" onClick={addBusinessSection} disabled={isLoading}>
+                        <Button type="button" onClick={addBusinessSection} disabled={isLoading} aria-label="Add business section">
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -441,7 +460,12 @@ export default function SignupPage() {
                         {businessSections.map((section, index) => (
                           <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded">
                             <span className="text-sm">{section}</span>
-                            <button type="button" onClick={() => removeBusinessSection(section)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeBusinessSection(section)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              aria-label={`Remove business section ${section}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -476,6 +500,15 @@ export default function SignupPage() {
           </form>
         </CardContent>
       </Card>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <Suspense fallback={<div className="text-center p-8 bg-white rounded-lg shadow">Loading signup form...</div>}>
+        <SignupForm />
+      </Suspense>
     </div>
   )
 }
