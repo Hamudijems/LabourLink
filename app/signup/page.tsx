@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase, Plus, X, CheckCircle2 } from "lucide-react"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
@@ -206,6 +206,15 @@ export default function SignupPage() {
               </Alert>
             )}
 
+            {isVerified && (
+              <Alert className="bg-green-50 border-green-200 text-green-800 mb-6">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription>
+                  Fayda ID verified successfully. Please complete the rest of your profile.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {!isVerified ? (
               <div className="space-y-4">
 
@@ -367,7 +376,12 @@ export default function SignupPage() {
                         {skills.map((skill, index) => (
                           <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
                             <span className="text-sm">{skill}</span>
-                            <button type="button" onClick={() => removeSkill(skill)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="text-red-500"
+                              aria-label={`Remove ${skill}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -441,7 +455,12 @@ export default function SignupPage() {
                         {businessSections.map((section, index) => (
                           <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded">
                             <span className="text-sm">{section}</span>
-                            <button type="button" onClick={() => removeBusinessSection(section)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeBusinessSection(section)}
+                              className="text-red-500"
+                              aria-label={`Remove ${section}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
