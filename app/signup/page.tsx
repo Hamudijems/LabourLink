@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase, Plus, X, CheckCircle2, Loader2 } from "lucide-react"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
@@ -246,11 +246,24 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Verifying..." : "Verify Fayda ID"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify Fayda ID"
+                  )}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
+                <Alert className="bg-green-50 border-green-200 text-green-800">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertDescription>
+                    Identity verified successfully. Please complete your profile.
+                  </AlertDescription>
+                </Alert>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName" className="text-base font-medium">
