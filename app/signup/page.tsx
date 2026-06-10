@@ -1,18 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, CheckCircle2, Users, Briefcase, Plus, X } from "lucide-react"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <SignupForm />
+    </Suspense>
+  )
+}
+
+function SignupForm() {
   const searchParams = useSearchParams()
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
@@ -251,6 +259,12 @@ export default function SignupPage() {
               </div>
             ) : (
               <div className="space-y-4">
+                <Alert className="bg-green-50 border-green-200 text-green-800">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertDescription>
+                    Fayda ID verified successfully! Please complete your profile.
+                  </AlertDescription>
+                </Alert>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName" className="text-base font-medium">
@@ -357,9 +371,19 @@ export default function SignupPage() {
                           onChange={(e) => setNewSkill(e.target.value)}
                           className="text-lg py-6"
                           disabled={isLoading}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              addSkill()
+                            }
+                          }}
                         />
-                        <Button type="button" onClick={addSkill} disabled={isLoading}>
+                        <Button
+                          type="button"
+                          onClick={addSkill}
+                          disabled={isLoading || !newSkill.trim()}
+                          aria-label="Add skill"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -367,7 +391,12 @@ export default function SignupPage() {
                         {skills.map((skill, index) => (
                           <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
                             <span className="text-sm">{skill}</span>
-                            <button type="button" onClick={() => removeSkill(skill)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              aria-label={`Remove ${skill}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -431,9 +460,19 @@ export default function SignupPage() {
                           onChange={(e) => setNewBusinessSection(e.target.value)}
                           className="text-lg py-6"
                           disabled={isLoading}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              addBusinessSection()
+                            }
+                          }}
                         />
-                        <Button type="button" onClick={addBusinessSection} disabled={isLoading}>
+                        <Button
+                          type="button"
+                          onClick={addBusinessSection}
+                          disabled={isLoading || !newBusinessSection.trim()}
+                          aria-label="Add business section"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -441,7 +480,12 @@ export default function SignupPage() {
                         {businessSections.map((section, index) => (
                           <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded">
                             <span className="text-sm">{section}</span>
-                            <button type="button" onClick={() => removeBusinessSection(section)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeBusinessSection(section)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              aria-label={`Remove ${section}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
