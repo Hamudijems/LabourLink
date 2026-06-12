@@ -1,0 +1,3 @@
+## 2024-05-20 - Fayda ID Verification UX and Suspense Errors
+**Learning:** Async verification flows (like Fayda ID) require immediate, themed success feedback (using Alert components with CheckCircle icons) to orient users before revealing the rest of the form. Additionally, in Next.js 14, using useSearchParams in a client component requires wrapping the usage in a Suspense boundary to prevent build-time prerendering errors.
+**Action:** Always provide immediate visual confirmation for multi-step async processes and ensure Suspense boundaries are used for search param consumption in static builds.
