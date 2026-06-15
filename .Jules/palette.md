@@ -1,0 +1,3 @@
+## 2026-06-15 - [Accessibility and Interaction enhancements for form controls]
+**Learning:** In Next.js 14 App Router, using `useSearchParams` without a `Suspense` boundary triggers a build-time error because it de-opts the page to client-side rendering. For UX, always provide descriptive `aria-label` attributes to icon-only buttons in dynamic lists and disable "Add" buttons when input is empty to prevent invalid data entry.
+**Action:** Extract `useSearchParams` into a side-effect component wrapped in `<Suspense fallback={null}>` for minimal impact on page structure, and ensure all dynamic list interactions have proper keyboard handlers (`onKeyDown`) and accessible labels.
