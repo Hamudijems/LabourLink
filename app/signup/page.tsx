@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,8 +12,18 @@ import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
-export default function SignupPage() {
+function SignupSearchParams({ setUserType }: { setUserType: (type: string) => void }) {
   const searchParams = useSearchParams()
+  useEffect(() => {
+    const type = searchParams.get("type")
+    if (type === "employer" || type === "worker") {
+      setUserType(type)
+    }
+  }, [searchParams, setUserType])
+  return null
+}
+
+export default function SignupPage() {
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
   const [userType, setUserType] = useState("worker")
@@ -36,13 +46,6 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [verifiedUser, setVerifiedUser] = useState(null)
-
-  useEffect(() => {
-    const type = searchParams.get('type')
-    if (type === 'employer' || type === 'worker') {
-      setUserType(type)
-    }
-  }, [searchParams])
 
   const handleVerify = async () => {
     setIsLoading(true)
@@ -179,6 +182,9 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <Suspense fallback={null}>
+        <SignupSearchParams setUserType={setUserType} />
+      </Suspense>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
@@ -357,9 +363,19 @@ export default function SignupPage() {
                           onChange={(e) => setNewSkill(e.target.value)}
                           className="text-lg py-6"
                           disabled={isLoading}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              addSkill()
+                            }
+                          }}
                         />
-                        <Button type="button" onClick={addSkill} disabled={isLoading}>
+                        <Button
+                          type="button"
+                          onClick={addSkill}
+                          disabled={isLoading || !newSkill.trim()}
+                          aria-label="Add skill"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -367,7 +383,12 @@ export default function SignupPage() {
                         {skills.map((skill, index) => (
                           <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
                             <span className="text-sm">{skill}</span>
-                            <button type="button" onClick={() => removeSkill(skill)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              aria-label={`Remove ${skill}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -431,9 +452,19 @@ export default function SignupPage() {
                           onChange={(e) => setNewBusinessSection(e.target.value)}
                           className="text-lg py-6"
                           disabled={isLoading}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              addBusinessSection()
+                            }
+                          }}
                         />
-                        <Button type="button" onClick={addBusinessSection} disabled={isLoading}>
+                        <Button
+                          type="button"
+                          onClick={addBusinessSection}
+                          disabled={isLoading || !newBusinessSection.trim()}
+                          aria-label="Add business section"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -441,7 +472,12 @@ export default function SignupPage() {
                         {businessSections.map((section, index) => (
                           <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded">
                             <span className="text-sm">{section}</span>
-                            <button type="button" onClick={() => removeBusinessSection(section)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeBusinessSection(section)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              aria-label={`Remove ${section}`}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
