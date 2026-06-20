@@ -1,19 +1,29 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase, Plus, X, CheckCircle, Loader2 } from "lucide-react"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
-export default function SignupPage() {
+function SignupSearchParams({ setUserType }: { setUserType: (type: string) => void }) {
   const searchParams = useSearchParams()
+  useEffect(() => {
+    const type = searchParams.get('type')
+    if (type === 'employer' || type === 'worker') {
+      setUserType(type)
+    }
+  }, [searchParams, setUserType])
+  return null
+}
+
+export default function SignupPage() {
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
   const [userType, setUserType] = useState("worker")
@@ -37,19 +47,11 @@ export default function SignupPage() {
   const [isVerified, setIsVerified] = useState(false)
   const [verifiedUser, setVerifiedUser] = useState(null)
 
-  useEffect(() => {
-    const type = searchParams.get('type')
-    if (type === 'employer' || type === 'worker') {
-      setUserType(type)
-    }
-  }, [searchParams])
-
   const handleVerify = async () => {
     setIsLoading(true)
     setError("")
 
     try {
-      // For testing - bypass Fayda verification if test FIN/FAN
       if (fin === '1234567890123456' && fan === '9876543210987654') {
         setIsVerified(true)
         setVerifiedUser({ name: 'Test User' })
@@ -92,39 +94,6 @@ export default function SignupPage() {
     setError("")
 
     try {
-      const userData = {
-        fydaId: `${fin}-${fan}`,
-        firstName,
-        lastName,
-        phone,
-        email,
-        region,
-        city,
-        userType: userType as "worker" | "employer",
-
-        companyName: userType === "employer" ? companyName : undefined,
-        businessType: userType === "employer" ? businessType : undefined,
-      }
-
-      console.log('Starting registration process...')
-      
-      // For now, skip certificate upload to fix the hanging issue
-      let certificateUrl = undefined
-      // TODO: Re-enable certificate upload after fixing Firebase Storage
-      /*
-      if (userType === "worker" && certificate) {
-        console.log('Uploading certificate...')
-        try {
-          const storageRef = ref(storage, `certificates/${Date.now()}_${certificate.name}`)
-          const snapshot = await uploadBytes(storageRef, certificate)
-          certificateUrl = await getDownloadURL(snapshot.ref)
-          console.log('Certificate uploaded successfully:', certificateUrl)
-        } catch (uploadError) {
-          console.error('Certificate upload failed, continuing without certificate:', uploadError)
-        }
-      }
-      */
-
       const finalUserData = {
         fydaId: `${fin}-${fan}`,
         firstName,
@@ -138,17 +107,14 @@ export default function SignupPage() {
         companyName: userType === "employer" ? companyName : undefined,
         businessType: userType === "employer" ? businessType : undefined,
         businessSections: userType === "employer" ? businessSections : undefined,
-        certificateUrl,
+        certificateUrl: undefined,
         companyDocumentUrl: userType === "employer" && companyDocument ? 'pending_upload' : undefined
       }
 
-      console.log('Attempting to register user:', finalUserData)
       const userId = await addUser(finalUserData)
-      console.log('User registered with ID:', userId)
       alert(`${userType === 'worker' ? 'Worker' : 'Employer'} account created successfully! User ID: ${userId}. Please wait for admin approval.`)
       window.location.href = "/landing"
     } catch (error) {
-      console.error('Registration error:', error)
       setError(`Failed to create account: ${error.message || error}`)
     }
 
@@ -179,6 +145,9 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <Suspense fallback={null}>
+        <SignupSearchParams setUserType={setUserType} />
+      </Suspense>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
@@ -206,9 +175,17 @@ export default function SignupPage() {
               </Alert>
             )}
 
+            {isVerified && (
+              <Alert className="bg-green-50 border-green-200 text-green-800 mb-6">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="font-medium">
+                  Fayda ID verified successfully! Please complete your profile.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {!isVerified ? (
               <div className="space-y-4">
-
                 <div>
                   <Label htmlFor="fin" className="text-base font-medium">
                     FIN (Fayda Identification Number)
@@ -246,7 +223,14 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Verifying..." : "Verify Fayda ID"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify Fayda ID"
+                  )}
                 </Button>
               </div>
             ) : (
@@ -357,9 +341,14 @@ export default function SignupPage() {
                           onChange={(e) => setNewSkill(e.target.value)}
                           className="text-lg py-6"
                           disabled={isLoading}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
                         />
-                        <Button type="button" onClick={addSkill} disabled={isLoading}>
+                        <Button
+                          type="button"
+                          onClick={addSkill}
+                          disabled={isLoading || !newSkill.trim()}
+                          aria-label="Add skill"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -367,7 +356,13 @@ export default function SignupPage() {
                         {skills.map((skill, index) => (
                           <div key={index} className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
                             <span className="text-sm">{skill}</span>
-                            <button type="button" onClick={() => removeSkill(skill)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              aria-label={`Remove ${skill}`}
+                              disabled={isLoading}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -431,9 +426,14 @@ export default function SignupPage() {
                           onChange={(e) => setNewBusinessSection(e.target.value)}
                           className="text-lg py-6"
                           disabled={isLoading}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addBusinessSection())}
                         />
-                        <Button type="button" onClick={addBusinessSection} disabled={isLoading}>
+                        <Button
+                          type="button"
+                          onClick={addBusinessSection}
+                          disabled={isLoading || !newBusinessSection.trim()}
+                          aria-label="Add business section"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -441,7 +441,13 @@ export default function SignupPage() {
                         {businessSections.map((section, index) => (
                           <div key={index} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded">
                             <span className="text-sm">{section}</span>
-                            <button type="button" onClick={() => removeBusinessSection(section)} className="text-red-500">
+                            <button
+                              type="button"
+                              onClick={() => removeBusinessSection(section)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              aria-label={`Remove ${section}`}
+                              disabled={isLoading}
+                            >
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -469,7 +475,14 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </div>
             )}
