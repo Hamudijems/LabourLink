@@ -1,0 +1,3 @@
+## 2026-06-24 - [Signup Page Accessibility and Build Stability]
+**Learning:** Next.js 14 requires `useSearchParams` to be wrapped in a `Suspense` boundary during static optimization. Failing to do so causes build errors. Additionally, icon-only buttons in dynamic lists (like adding/removing skills) require explicit `aria-label` and validation logic to prevent empty entries and provide context to screen readers.
+**Action:** Always wrap components using `useSearchParams` in `Suspense`. Use `onKeyDown` instead of `onKeyPress` and always `.trim()` input values before adding to dynamic lists. Provide descriptive `aria-label` for all icon-only buttons.
