@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,8 +12,18 @@ import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 
-export default function SignupPage() {
+function SignupSearchParams({ setUserType }: { setUserType: (type: string) => void }) {
   const searchParams = useSearchParams()
+  useEffect(() => {
+    const type = searchParams.get('type')
+    if (type === 'employer' || type === 'worker') {
+      setUserType(type)
+    }
+  }, [searchParams, setUserType])
+  return null
+}
+
+export default function SignupPage() {
   const [fin, setFin] = useState("")
   const [fan, setFan] = useState("")
   const [userType, setUserType] = useState("worker")
@@ -36,13 +46,6 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [verifiedUser, setVerifiedUser] = useState(null)
-
-  useEffect(() => {
-    const type = searchParams.get('type')
-    if (type === 'employer' || type === 'worker') {
-      setUserType(type)
-    }
-  }, [searchParams])
 
   const handleVerify = async () => {
     setIsLoading(true)
@@ -198,6 +201,9 @@ export default function SignupPage() {
         </CardHeader>
 
         <CardContent>
+          <Suspense fallback={null}>
+            <SignupSearchParams setUserType={setUserType} />
+          </Suspense>
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <Alert variant="destructive">
