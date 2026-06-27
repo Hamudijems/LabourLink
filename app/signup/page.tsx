@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertCircle, Users, Briefcase, Plus, X } from "lucide-react"
+import { Shield, AlertCircle, Users, Briefcase, Plus, X, Loader2, CheckCircle } from "lucide-react"
 import { addUser } from "@/services/firebase-services"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { storage } from "@/lib/firebase"
@@ -246,11 +246,21 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Verifying..." : "Verify Fayda ID"}
+                  {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</>
+                  ) : (
+                    "Verify Fayda ID"
+                  )}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
+                <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800 dark:text-green-200">
+                    Fayda ID verified successfully! Please complete your profile details.
+                  </AlertDescription>
+                </Alert>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName" className="text-base font-medium">
@@ -469,7 +479,11 @@ export default function SignupPage() {
                   className="w-full text-lg py-6"
                   size="lg"
                 >
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  {isLoading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Account...</>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </div>
             )}
